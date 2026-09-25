@@ -990,6 +990,9 @@ def fetch_broll(job, query, vertical, used, need, region="global", strict=True):
     got = BR.find_broll(query, region, root=ROOT, stock=stock, pexels_key=pexels_key(), pixabay_key=pixabay_key(),
                         used=used, need=need, orientation="portrait" if vertical else "landscape", strict=strict,
                         log=lambda m: log(job, m))
+    if not got and vertical:       # tall stock footage of Bangladesh is rare: a landscape clip is cropped to fit
+        got = BR.find_broll(query, region, root=ROOT, stock=stock, pexels_key=pexels_key(), pixabay_key=pixabay_key(),
+                            used=used, need=need, orientation="landscape", strict=strict, log=lambda m: log(job, m))
     if not got:
         return None
     src, label, remote = got
@@ -1004,6 +1007,15 @@ def fetch_broll(job, query, vertical, used, need, region="global", strict=True):
     except Exception as e:
         log(job, f"B-roll download failed: {str(e)[:100]}")
         return None
+    try:
+        slug = (r.get("url") or "").rstrip("/").split("/")[-1][:80] or f"{prov}_{r['id']}"
+        keep_dir = os.path.join(ROOT, "broll", region if region else "global")
+        os.makedirs(keep_dir, exist_ok=True)
+        keep = os.path.join(keep_dir, re.sub(r"[^\w\-]", "_", slug) + ".mp4")
+        if not os.path.exists(keep):
+            shutil.copyfile(path, keep)
+    except Exception:
+        pass
     return path, label
 
 
@@ -1430,7 +1442,7 @@ def render(job, name, opts):
             sc2.pop("sfx", None)
         if sc.get("type") == "broll":
             import broll_region as BR
-            reg = BR.scene_region(sc, video_region) if region_mode == "auto" else region_mode
+            reg = sc.get("broll_region") or (BR.scene_region(sc, video_region) if region_mode == "auto" else region_mode)
             got = fetch_broll(job, sc.get("broll") or "", vertical, used, float(sc.get("duration") or 6), reg, strict)
             if not got and used:     # nothing new fits: a clip already in this video beats an empty map
                 got = fetch_broll(job, sc.get("broll") or "", vertical, set(), float(sc.get("duration") or 6), reg, strict)

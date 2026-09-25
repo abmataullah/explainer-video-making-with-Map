@@ -41,12 +41,15 @@ VIS_RE = re.compile(r"^(?:ভিজ্যুয়াল|ভিজুয়া�
 VO_ONLY_RE = re.compile(r"(শুধু ন্যারেশন|কেবল ন্যারেশন|narration only|voice ?over only|vo only)", re.I)
 DATA_RE = re.compile(r"(ডেটা শিট|ডাটা শিট|তথ্য শিট|data ?sheet|chart data|সূত্র তালিকা)", re.I)
 TIME_RE = re.compile(r"\(\s*[০-৯0-9]{1,2}:[০-৯0-9]{2}\s*[-–—]\s*[০-৯0-9]{1,2}:[০-৯0-9]{2}\s*\)")
+_NEXT = r"(?=\s*(?:\||চ্যানেল\s*[:：]|দৈর্ঘ্য\s*[:：]|সময়কাল\s*[:：]|ডেটা কাটঅফ|ডাটা কাটঅফ|ভয়েস\s*[:：]|voice\s*[:：]|channel\s*[:：]|duration\s*[:：]|$))"
 META = {
-    "channel": re.compile(r"(?:চ্যানেল|channel)\s*[:：]\s*([^|।\n]+)", re.I),
-    "duration": re.compile(r"(?:দৈর্ঘ্য|সময়কাল|duration|length)\s*[:：]\s*([^|\n]+)", re.I),
-    "cutoff": re.compile(r"(?:ডেটা কাটঅফ|ডাটা কাটঅফ|তথ্য হালনাগাদ|কাটঅফ|data cut-?off|cut-?off|data as of)\s*[:：]\s*([^|\n]+)", re.I),
+    "channel": re.compile(r"(?:চ্যানেল|channel)\s*[:：]\s*(.+?)" + _NEXT, re.I),
+    "duration": re.compile(r"(?:দৈর্ঘ্য|সময়কাল|duration|length)\s*[:：]\s*(.+?)" + _NEXT, re.I),
+    "cutoff": re.compile(r"(?:ডেটা কাটঅফ|ডাটা কাটঅফ|তথ্য হালনাগাদ|কাটঅফ|data cut-?off|cut-?off|data as of)\s*[:：]\s*(.+?)" + _NEXT, re.I),
     "title": re.compile(r"^(?:শিরোনাম|টাইটেল|title)\s*[:：]\s*(.+)$", re.I),
 }
+# voice-tool notes after the script (AI Studio / ElevenLabs setup, speech blocks) are not part of the video
+SETUP_RE = re.compile(r"(সেটআপ|setup|speech blocks?|^ব্লক\s*[০-৯0-9]|scene বক্সে|sample context|^model\s*:|elevenlabs settings)", re.I)
 BULLET_RE = re.compile(r"^(?:[-•*▪►●◦–]|[০-৯0-9]{1,2}[.)])\s*")
 
 
@@ -71,7 +74,7 @@ def parse_production(text):
         if mode == "data":
             data_lines.append(line)
             continue
-        if VO_ONLY_RE.search(line) and len(line) < 80:
+        if (VO_ONLY_RE.search(line) and len(line) < 80) or (SETUP_RE.search(line) and len(line) < 160 and not NARR_RE.match(line)):
             skipping = True
             continue
         m = SECTION_RE.match(line)

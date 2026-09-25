@@ -87,6 +87,7 @@ def local_library(root, region):
     return [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.lower().endswith(VIDEO_EXT)]
 
 
+LIMITED = {}     # provider -> time it answered 429 (skipped for an hour)
 OFF_TOPIC = {"rohingya", "refugee", "refugees", "camp", "fire", "burning", "wedding", "festival", "protest", "protesters",
              "flood", "flooded", "funeral", "war", "army", "police", "cricket", "concert", "party", "puja", "eid"}
 GENERIC = {"people", "person", "street", "city", "crowd", "life", "daily", "local", "view", "scene", "urban", "town"}
@@ -102,6 +103,27 @@ def _subject_hits(r, subj):
     return sum(1 for w in subj if w in sw or w.rstrip("s") in sw or (w + "s") in sw)
 
 
+PEOPLE = {"people", "crowd", "street", "market", "village", "children", "child", "kids", "family", "woman", "women",
+          "man", "men", "life", "daily", "busy", "traffic", "rickshaw", "school", "worker", "workers", "farmer"}
+
+
+def _cached_search(fn, prov, q, key, orientation, cache_dir):
+    import hashlib, json, time
+    f = None
+    if cache_dir:
+        os.makedirs(cache_dir, exist_ok=True)
+        f = os.path.join(cache_dir, hashlib.md5(f"{prov}|{q}|{orientation}".encode()).hexdigest() + ".json")
+        try:
+            if time.time() - os.path.getmtime(f) < 7 * 86400:
+                return json.load(open(f, encoding="utf-8"))
+        except OSError:
+            pass
+    res = fn(q, key, "video", 40, orientation)
+    if f:
+        json.dump(res, open(f, "w", encoding="utf-8"))
+    return res
+
+
 def find_broll(query, region, *, root, stock, pexels_key="", pixabay_key="", used=None, need=6.0,
                orientation="landscape", strict=True, log=print, cache_dir=None):
     """Returns (path_or_url, source_label, is_remote) or None."""
@@ -110,7 +132,9 @@ def find_broll(query, region, *, root, stock, pexels_key="", pixabay_key="", use
     R = REGIONS.get(region) or REGIONS["global"]
     lib = [p for p in local_library(root, region) if p not in used]
     # 1. own clips whose file name shares a word with the search
-    scored = sorted(((sum(w in os.path.basename(p).lower() for w in words), p) for p in lib), reverse=True)
+    _pl = re.compile(r"(?<![a-z])(?:" + (R.get("rx") or "$^") + r")[a-z]{0,4}(?![a-z])")
+    _sw = [w for w in words if not _pl.search(w) and w not in GENERIC] or words
+    scored = sorted(((sum(w.rstrip("s") in os.path.basename(p).lower() for w in _sw), p) for p in lib), reverse=True)
     if scored and scored[0][0] > 0:
         used.add(scored[0][1])
         return scored[0][1], f"your {R['name']} clip {os.path.basename(scored[0][1])}", False
@@ -127,15 +151,25 @@ def find_broll(query, region, *, root, stock, pexels_key="", pixabay_key="", use
     subj = [w for w in words if not place.search(w) and w not in GENERIC]
     subj_required = bool(subj)
     fallback = None
+    limited = LIMITED
+    if subj and R["prefix"]:   # search by subject: "Bangladesh hospital", "Dhaka hospital", then each word alone
+        s_all = " ".join(subj[:3])
+        qs = [f"{p} {s_all}" for p in R["prefix"][:2]] + [f"{R['prefix'][0]} {w}" for w in sorted(subj, key=len, reverse=True)] \
+            + [f"{R['prefix'][1]} {w}" for w in subj[:2] if len(R["prefix"]) > 1] + qs
+        qs = list(dict.fromkeys(q.strip() for q in qs if q.strip()))[:9]
     for q in qs:
         for prov, key in (("pexels", pexels_key), ("pixabay", pixabay_key)):
-            if not key:
+            if not key or __import__('time').time() - limited.get(prov, 0) < 3600:
                 continue
             try:
                 fn = stock.search_pexels if prov == "pexels" else stock.search_pixabay
-                res = [r for r in fn(q, key, "video", 40, orientation) if f"{prov}_{r['id']}" not in used]
+                cd = cache_dir or os.path.join(root, "cache", "stock_search")
+                res = [r for r in _cached_search(fn, prov, q, key, orientation, cd) if f"{prov}_{r['id']}" not in used]
             except Exception as e:
                 log(f"  {prov} search failed for '{q}': {str(e)[:80]}")
+                if "429" in str(e):
+                    log(f"  {prov} says too many searches this hour; skipping it for an hour")
+                    limited[prov] = __import__('time').time()
                 continue
             good = [r for r in res if verified(r, region)] if (strict and region != "global") else res
             # drop clips about a different story (a refugee camp fire is not a dengue ward)
@@ -145,17 +179,22 @@ def find_broll(query, region, *, root, stock, pexels_key="", pixabay_key="", use
             ranked = sorted(good, key=lambda r: (-_subject_hits(r, subj), -((r.get("dur") or 0) >= need), -(r.get("dur") or 0)))
             r = ranked[0]
             if subj and _subject_hits(r, subj) == 0:
-                fallback = fallback or (prov, r)
+                if not fallback and (_slug_words(r) & PEOPLE):
+                    fallback = (prov, r)        # the right country and its people, if not the exact subject
                 continue
             used.add(f"{prov}_{r['id']}")
             slug = (r.get("url") or "").rstrip("/").split("/")[-1][:60]
             return (prov, r), f"{prov} '{slug}'", True
-    if fallback and not subj_required:
+    if fallback:
         prov, r = fallback
         used.add(f"{prov}_{r['id']}")
         slug = (r.get("url") or "").rstrip("/").split("/")[-1][:60]
         return (prov, r), f"{prov} '{slug}' (place matches, subject loosely)", True
-    # 3. any unused own clip for the region
+    # 3. any unused own clip for the region, unless a clip that fits the subject is already in this video
+    #    (then the caller reuses that one from a later point, which reads better than a random place)
+    if any(p in used and sum(w.rstrip("s") in os.path.basename(p).lower() for w in _sw) > 0
+           for p in local_library(root, region)):
+        return None
     if lib:
         p = random.Random(query).choice(lib)
         used.add(p)

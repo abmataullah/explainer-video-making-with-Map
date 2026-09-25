@@ -224,6 +224,7 @@ export const ChartCard = ({s, local, fps, W, H, T, font, look, lang}) => {
 const EN = '0123456789';
 export const countUp = (value, p) => {
   const str = String(value ?? '');
+  if (/(^|[^0-9০-৯,.])(1[89]|20|১[৮৯]|২০)[0-9০-৯]{2}([^0-9০-৯,.]|$)/.test(str) && !/[,.%]/.test(str)) return str;
   const toEn = str.replace(/[০-৯]/g, (d) => EN[BN.indexOf(d)]);
   const m = toEn.match(/-?\d[\d,]*(\.\d+)?/);
   if (!m) return str;

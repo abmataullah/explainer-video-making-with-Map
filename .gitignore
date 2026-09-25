@@ -35,3 +35,4 @@ fonts/*
 !fonts/README.txt
 music/_lib/
 *.bak
+broll/
