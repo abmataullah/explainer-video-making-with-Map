@@ -87,6 +87,7 @@ a{color:var(--acc)}
       <button class="sm" title="Listen to the selected music at this volume" onclick="previewMusic('music1','musicVol1')">▶</button></div></div>
     <label class="btn file-btn auto" style="align-self:end" title="Add your own music file">Upload music<input type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac,.flac" hidden onchange="uploadMusic(this,'music1')"></label>
     <div><label>Channel</label><select id="channel1" onchange="syncSel('channel1','channel')"></select></div>
+    <div><label>B-roll people and places</label><select id="brollRegion1" onchange="syncSel('brollRegion1','brollRegion')"><option value="auto">Auto (from the countries in the video)</option><option value="bd">Bangladesh</option><option value="arab">Arab world</option><option value="india">India</option><option value="pakistan">Pakistan</option><option value="myanmar">Myanmar</option><option value="china">China</option><option value="iran">Iran</option><option value="turkey">Turkey</option><option value="afghanistan">Afghanistan</option><option value="nepal">Nepal</option><option value="srilanka">Sri Lanka</option><option value="russia">Russia</option><option value="ukraine">Ukraine</option><option value="usa">United States</option><option value="global">Anywhere (no check)</option></select></div>
     <div><label>Look</label><select id="look1" onchange="syncSel('look1','look')"><option value="classic">Classic (navy)</option><option value="hud">HUD (dark, grid, red)</option><option value="light">Light editorial</option></select></div>
     <label class="chk auto"><input type="checkbox" id="grounded"> Google Search research (paid Gemini plan)</label>
   </div>
@@ -183,6 +184,12 @@ a{color:var(--acc)}
     <label class="chk auto"><input type="checkbox" id="captions" checked> Captions</label>
     <label class="chk auto"><input type="checkbox" id="sfx" checked> Sound effects</label>
     <label class="chk auto"><input type="checkbox" id="autosfx" checked> Choose effects automatically</label>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <div><label>B-roll people and places</label><select id="brollRegion" onchange="syncSel('brollRegion','brollRegion1')"><option value="auto">Auto (from the countries in the video)</option><option value="bd">Bangladesh</option><option value="arab">Arab world</option><option value="india">India</option><option value="pakistan">Pakistan</option><option value="myanmar">Myanmar</option><option value="china">China</option><option value="iran">Iran</option><option value="turkey">Turkey</option><option value="afghanistan">Afghanistan</option><option value="nepal">Nepal</option><option value="srilanka">Sri Lanka</option><option value="russia">Russia</option><option value="ukraine">Ukraine</option><option value="usa">United States</option><option value="global">Anywhere (no check)</option></select></div>
+    <label class="chk auto" title="Use only stock clips whose description names that country or its cities; otherwise show the map"><input type="checkbox" id="brollStrict" checked> Only footage verified for that country</label>
+    <button class="auto" title="Put your own clips here; they are used first" onclick="openFolder('broll:' + ($('brollRegion').value === 'auto' || $('brollRegion').value === 'global' ? 'bd' : $('brollRegion').value))">My B-roll folder</button>
+    <div class="hint" style="flex:2;align-self:end">Your own clips in the B-roll folder are used first (name the files with what they show, e.g. dhaka_traffic.mp4).</div>
     <div style="max-width:130px"><label>Effects volume</label><input id="sfxLevel" type="number" value="1" step="0.1" min="0" max="2"></div>
     <label class="chk auto"><input type="checkbox" id="intro" checked> Intro</label>
     <label class="chk auto"><input type="checkbox" id="outro" checked> Outro</label>
@@ -242,6 +249,8 @@ async function init() {
   $('style').value = S.style;
   fillChannels();
   ['look', 'look1'].forEach((id) => { $(id).value = S.look || 'classic'; });
+  ['brollRegion', 'brollRegion1'].forEach((id) => { $(id).value = S.broll_region || 'auto'; });
+  $('brollStrict').checked = S.broll_strict !== false;
   api('/api/fonts').then((fs) => {
     const fav = fs.filter((f) => /hind|kalpurush|madanmohan|purno/i.test(f));
     const rest = fs.filter((f) => !fav.includes(f));
@@ -544,7 +553,7 @@ async function delChannel() {
 }
 const renderOpts = (aspect, music) => ({aspect, channel: $('channel').value, look: $('look').value,
   font_text: $('fontTxt').value, font_caption: $('fontCap').value, music, musicVolume: +$('musicVol').value / 100,
-  musicBoost: $('musicBoost').checked ? 1.8 : 1,
+  musicBoost: $('musicBoost').checked ? 1.8 : 1, broll_region: $('brollRegion').value, broll_strict: $('brollStrict').checked,
   captions: $('captions').checked, sfx: $('sfx').checked, auto_sfx: $('autosfx').checked, sfx_level: +$('sfxLevel').value, intro: $('intro').checked, outro: $('outro').checked});
 async function oneClick(resume) {
   const topic = $('topic').value.trim(); if (!topic && !resume) return alert('Write a topic first');

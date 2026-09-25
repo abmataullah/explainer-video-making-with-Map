@@ -34,6 +34,9 @@ DEFAULTS = {
     "font_caption": "Hind Siliguri",
     "look": "classic",
     "pexels_key": "",
+    "pixabay_key": "",
+    "broll_region": "auto",
+    "broll_strict": True,
     "recent_music": [],
     "music_volume": 0.1,
 }
@@ -210,6 +213,8 @@ Rules:
   (Bangladesh), 1 = divisions/provinces. Never invent affected areas.
 - "sfx" (optional, any scene): at most 2 effects that match what the narration describes (rain for rain,
   gunfire for shooting, fanfare or cheer for a victory). Leave it out when nothing fits.
+- "broll" search words must name the place and its people: "Dhaka street crowd", "Bangladeshi farmer paddy field",
+  "Chittagong port ships", "Saudi Arabia Riyadh street", "Arab market Cairo". Never generic Western scenes.
 - "broll" is real stock footage for human, ground-level moments (people, ports, ships, protests, factories,
   parliament). 1-3 per video, never two in a row. Still give "focus".
 - Aim for variety: mostly map and globe scenes, plus at most one each of stat, timeline, compare, bullets,
@@ -854,41 +859,43 @@ def pexels_key():
     return k
 
 
-def fetch_broll(job, query, vertical, used, need):
-    key = pexels_key()
-    if not key or not query:
-        return None
+def pixabay_key():
+    k = (load_settings().get("pixabay_key") or "").strip()
+    if not k:
+        try:
+            k = json.load(open(os.path.join(PARENT, "app_settings.json"), encoding="utf-8-sig")).get("pixabay_key", "")
+        except Exception:
+            k = ""
+    return k
+
+
+def fetch_broll(job, query, vertical, used, need, region="global", strict=True):
+    """Footage from the scene's own country (see broll_region.py). Returns (local path, label) or None."""
     try:
         import stock                      # studio/stock.py (Pexels / Pixabay search)
     except ImportError:
         if PARENT not in sys.path:
             sys.path.insert(0, PARENT)
         from pipeline import stock
-    words = [w for w in re.findall(r"[A-Za-z][A-Za-z'-]+", query) if w.lower() not in _STOP]
-    qs = list(dict.fromkeys([" ".join(words[:4])] + [" ".join(words[k:k + 2]) for k in range(max(0, len(words) - 1))]
-                            + ([max(words, key=len)] if words else [])))
-    orient = "portrait" if vertical else "landscape"
-    for q in [x for x in qs if x]:
-        try:
-            res = [r for r in stock.search_pexels(q, key, "video", 10, orient) if r["id"] not in used]
-        except Exception as e:
-            log(job, f"Pexels search failed for '{q}': {str(e)[:100]}")
-            continue
-        if not res:
-            continue
-        ok = [r for r in res if (r.get("dur") or 0) >= need]
-        r = (ok or sorted(res, key=lambda r: -(r.get("dur") or 0)))[0]
-        os.makedirs(BROLL_CACHE, exist_ok=True)
-        path = os.path.join(BROLL_CACHE, f"pexels_{r['id']}.mp4")
-        try:
-            if not os.path.exists(path) or os.path.getsize(path) < 10000:
-                stock.download(r["file"], path)
-        except Exception as e:
-            log(job, f"B-roll download failed: {str(e)[:100]}")
-            continue
-        used.add(r["id"])
-        return path, q
-    return None
+    import broll_region as BR
+    got = BR.find_broll(query, region, root=ROOT, stock=stock, pexels_key=pexels_key(), pixabay_key=pixabay_key(),
+                        used=used, need=need, orientation="portrait" if vertical else "landscape", strict=strict,
+                        log=lambda m: log(job, m))
+    if not got:
+        return None
+    src, label, remote = got
+    if not remote:
+        return src, label
+    prov, r = src
+    os.makedirs(BROLL_CACHE, exist_ok=True)
+    path = os.path.join(BROLL_CACHE, f"{prov}_{r['id']}.mp4")
+    try:
+        if not os.path.exists(path) or os.path.getsize(path) < 10000:
+            stock.download(r["file"], path)
+    except Exception as e:
+        log(job, f"B-roll download failed: {str(e)[:100]}")
+        return None
+    return path, label
 
 
 # ============================================================ exports --
@@ -1230,6 +1237,10 @@ def render(job, name, opts):
     f_cap = font_entry(opts.get("font_caption") or s.get("font_caption"))
     if opts.get("musicVolume") is not None:
         s["music_volume"] = float(opts["musicVolume"])
+    if opts.get("broll_region"):
+        s["broll_region"] = opts["broll_region"]
+    if "broll_strict" in opts:
+        s["broll_strict"] = bool(opts["broll_strict"])
     for k in ("channel", "look", "font_text", "font_caption"):      # remember the last choices
         if opts.get(k):
             s[k] = opts[k]
@@ -1248,6 +1259,14 @@ def render(job, name, opts):
             except Exception:
                 pass
     scenes, used, adm_credits, used_sfx = [], set(), set(), set()
+    import broll_region as BR
+    region_mode = opts.get("broll_region") or "auto"
+    strict = opts.get("broll_strict", True) is not False
+    video_region = BR.detect_region(p["scenes"], lang) if region_mode == "auto" else region_mode
+    if any(sc.get("type") == "broll" for sc in p["scenes"]):
+        log(job, f"B-roll region: {BR.REGIONS.get(video_region, BR.REGIONS['global'])['name']}"
+                 + (" (only footage that names the place)" if strict else ""))
+        os.makedirs(os.path.join(ROOT, "broll", video_region), exist_ok=True)
     for i, sc in enumerate(p["scenes"]):
         sc2 = dict(sc)
         if sc.get("audio"):
@@ -1277,15 +1296,18 @@ def render(job, name, opts):
         else:
             sc2.pop("sfx", None)
         if sc.get("type") == "broll":
-            got = fetch_broll(job, sc.get("broll") or "", vertical, used, float(sc.get("duration") or 6))
+            import broll_region as BR
+            reg = BR.scene_region(sc, video_region) if region_mode == "auto" else region_mode
+            got = fetch_broll(job, sc.get("broll") or "", vertical, used, float(sc.get("duration") or 6), reg, strict)
             if got:
                 dst = f"broll{i:02d}.mp4"
                 shutil.copyfile(got[0], os.path.join(PUBLIC_RENDER, dst))
                 sc2["broll_file"] = f"_render/{dst}"
-                log(job, f"Scene {i + 1}: B-roll '{got[1]}' from Pexels")
+                log(job, f"Scene {i + 1}: B-roll [{BR.REGIONS[reg]['name']}] {got[1]}")
             else:
                 sc2["type"] = "map"
-                log(job, f"Scene {i + 1}: no B-roll found" + ("" if pexels_key() else " (add a Pexels key in Settings)") + ", showing the map")
+                log(job, f"Scene {i + 1}: no verified {BR.REGIONS[reg]['name']} footage for '{sc.get('broll', '')}'"
+                         + ("" if pexels_key() else " (add a Pexels key in Settings)") + ", showing the map instead")
         scenes.append(sc2)
     music = None
     if opts.get("music") == "auto":
@@ -1870,7 +1892,8 @@ Use "bullets" rarely (max 3 in the whole video) and only when the narration list
 "globe" = rotating 3D globe (max 2). "spread" = something spreading inside a country (flood, fighting, protests,
 disease, drought, cyclone): {{"effect": "...", "regions": ["only districts the narration names"], "origin": "...",
 "mode": "regions|spread", "track": [[lon, lat]] for a cyclone}}. Optional "sfx": ["rain", "gunfire", "fanfare", ...]
-only when the narration describes that sound. "broll" = stock footage for human moments, 1-3 per video, never two in a row.
+only when the narration describes that sound. "broll" = stock footage for human moments, 1-3 per video, never two in a row. B-roll words must name the place and
+its people ("Dhaka street crowd", "Bangladeshi garment workers", "Riyadh street Saudi").
 Only use stat/compare/timeline/chart/choropleth when the narration itself states those facts; copy numbers exactly
 from the narration, never add new ones. Points only for places named in the narration whose
 coordinates you are sure of. Omit unused keys."""
@@ -2223,7 +2246,12 @@ def video(f):
 @app.post("/api/open")
 def open_folder():
     what = (request.json or {}).get("what", "outputs")
-    path = {"outputs": OUTPUTS, "music": MUSIC, "projects": PROJECTS}.get(what, OUTPUTS)
+    if what.startswith("broll"):
+        reg = re.sub(r"[^a-z]", "", what.split(":", 1)[1] if ":" in what else "bd") or "bd"
+        path = os.path.join(ROOT, "broll", reg)
+        os.makedirs(path, exist_ok=True)
+    else:
+        path = {"outputs": OUTPUTS, "music": MUSIC, "projects": PROJECTS}.get(what, OUTPUTS)
     if os.name == "nt":
         os.startfile(path)
     return jsonify(ok=True)
