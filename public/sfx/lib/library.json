@@ -1,0 +1,200 @@
+{
+ "rain": {
+  "title": "Long rain ambience",
+  "kind": "amb",
+  "vol": 0.35,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "storm": {
+  "title": "Rain and thunder storm",
+  "kind": "amb",
+  "vol": 0.35,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "thunder": {
+  "title": "Thunder rumble during a storm",
+  "kind": "hit",
+  "vol": 0.6,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "water": {
+  "title": "River water flowing",
+  "kind": "amb",
+  "vol": 0.35,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "flood": {
+  "title": "Waterfall ambience",
+  "kind": "amb",
+  "vol": 0.3,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "waves": {
+  "title": "Sea waves ambience",
+  "kind": "amb",
+  "vol": 0.3,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "wind": {
+  "title": "Wind blowing ambience",
+  "kind": "amb",
+  "vol": 0.35,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "explosion": {
+  "title": "Explosion in battle",
+  "kind": "hit",
+  "vol": 0.55,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "explosions_far": {
+  "title": "Far away war explosions",
+  "kind": "amb",
+  "vol": 0.35,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "bomb": {
+  "title": "Bomb explosion in battle",
+  "kind": "hit",
+  "vol": 0.55,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "war": {
+  "title": "War explosions",
+  "kind": "amb",
+  "vol": 0.3,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "fire": {
+  "title": "Campfire crackles",
+  "kind": "amb",
+  "vol": 0.35,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "protest": {
+  "title": "Rioting Crowd",
+  "kind": "amb",
+  "vol": 0.3,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "crowd_angry": {
+  "title": "Angry male crowd ambience",
+  "kind": "amb",
+  "vol": 0.3,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "cheer": {
+  "title": "Huge crowd cheering victory",
+  "kind": "hit",
+  "vol": 0.45,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "press": {
+  "title": "Reporters crowd and camera flashes",
+  "kind": "amb",
+  "vol": 0.3,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "march": {
+  "title": "Big army crowd marching",
+  "kind": "amb",
+  "vol": 0.3,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "war_drums": {
+  "title": "Drums of war call",
+  "kind": "hit",
+  "vol": 0.45,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "war_horn": {
+  "title": "War horn ambience",
+  "kind": "hit",
+  "vol": 0.4,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "fanfare": {
+  "title": "Trumpet fanfare",
+  "kind": "hit",
+  "vol": 0.45,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "siren": {
+  "title": "Ambulance siren UK",
+  "kind": "amb",
+  "vol": 0.25,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "police": {
+  "title": "Police siren US",
+  "kind": "amb",
+  "vol": 0.25,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "alarm": {
+  "title": "Facility alarm sound",
+  "kind": "hit",
+  "vol": 0.3,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "helicopter": {
+  "title": "Helicopter flying in the sky",
+  "kind": "amb",
+  "vol": 0.35,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "heartbeat": {
+  "title": "Cinematic heartbeat ambience",
+  "kind": "amb",
+  "vol": 0.4,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "drumroll": {
+  "title": "Tension and suspense drum roll",
+  "kind": "hit",
+  "vol": 0.45,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "riser": {
+  "title": "Cinematic trailer riser",
+  "kind": "hit",
+  "vol": 0.4,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "impact": {
+  "title": "Big cinematic impact",
+  "kind": "hit",
+  "vol": 0.5,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "clock": {
+  "title": "Tick tock clock close up",
+  "kind": "amb",
+  "vol": 0.3,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "drone": {
+  "title": "Tactical drone ambience",
+  "kind": "amb",
+  "vol": 0.3,
+  "license": "Mixkit Sound Effects Free License (mixkit.co)"
+ },
+ "gunshot": {
+  "title": "Rifle: Shot",
+  "kind": "hit",
+  "vol": 0.5,
+  "license": "BigSoundBank.com, CC0 (Joseph Sardin)"
+ },
+ "gunshot2": {
+  "title": "Shot of Winchester Magnum XTR",
+  "kind": "hit",
+  "vol": 0.5,
+  "license": "BigSoundBank.com, CC0 (Joseph Sardin)"
+ },
+ "gunfire": {
+  "title": "Shot Beretta M12 9mm",
+  "kind": "hit",
+  "vol": 0.5,
+  "license": "BigSoundBank.com, CC0 (Joseph Sardin)"
+ }
+}

@@ -1,0 +1,104 @@
+GEO EXPLAINER STUDIO
+
+Start:  double-click GeoExplainer.exe  (opens http://localhost:7870)
+        It keeps running in the background until you press Quit or restart the PC.
+        Open a project directly: http://localhost:7870/?p=<project name>
+
+FAST WAY
+  Type the topic, paste your notes, pick voice/format/music, press
+  "Make the whole video". Script, voice and MP4 are made in one go (3 to 6 minutes).
+  If Google is busy, it waits and retries on its own for about 2 minutes.
+  If it still stops, press "Try again": finished parts are kept.
+
+CAREFUL WAY
+  "Write script only", then check each scene before voicing and rendering.
+
+EDITING A SCENE
+  Camera shows:      বাংলাদেশ, মিয়ানমার       (or Bangladesh, Myanmar)
+  Colour countries:  বাংলাদেশ=সবুজ, ভারত=নীল  (লাল কমলা সবুজ নীল ফিরোজা বেগুনি হলুদ গোলাপি ধূসর)
+  Arrows:            চীন > মিয়ানমার : পাইপলাইন
+  Points:            কক্সবাজার, 21.43, 91.97   (name, latitude, longitude)
+  The chips under each scene show a flag when a country is recognised, a red ✗ when not.
+  The picture on the right is a live preview of where the camera ends up. Use it to catch
+  wrong coordinates (Gemini sometimes puts ports in the wrong place).
+
+  Scene types: map, title, stat, bullets, timeline (date | text), compare (label | A | B), quote.
+
+OWN AUDIO (when Gemini voice fails, or you prefer ElevenLabs / your own voice)
+  Step 1 -> "🎧 I have my own audio".
+  Choose the audio file, paste the EXACT script you recorded, with an empty line
+  between scenes (one paragraph = one scene). Press "Build video from my audio".
+  - Your words are never changed. Gemini only designs the maps; if Gemini is busy,
+    automatic maps show the countries each paragraph mentions.
+  - Whisper listens to the recording to find where each scene starts and to time
+    the captions. Most cuts land within a fraction of a second, but a few can be
+    off by a few seconds where Whisper mishears Bangla.
+  - To fix a cut: change "starts at" (seconds) on that scene, press "Re-cut my audio",
+    then Render. Play each scene's clip to check.
+  - Tip for perfect cuts: when recording, leave about 1 second of silence between
+    paragraphs.
+  - "Generate audio" never overwrites your recorded scenes.
+  - Section markers such as **[India — 0:20–0:55]** or # headings are fine: they are
+    treated as headings (used as on-screen headlines), not as speech. ** bold marks are removed.
+  - Short lines are joined into scenes of about 6-15 seconds automatically.
+  - Lines that are in the script but NOT in the recording are detected and left out;
+    the log names them. Paste the script that matches what was actually read.
+
+AFTER EDITING
+  Generate audio (only changed scenes are re-recorded), then Render video.
+
+RENDER OPTIONS
+  16:9 or 9:16, channel name (used in intro, corner and outro), music, captions,
+  whoosh sounds, intro, outro.
+  Music "✨ Auto" (default) picks a track that fits the story: refugees -> Heartbreaking,
+  war -> Impact Lento, trade/ports -> Sovereign Quarter, spies -> Covert Affair, history -> Echoes of Time...
+  The log says which track and why. Pick a track by hand to override.
+  Every render with music saves <video>_CREDITS.txt: paste it in the YouTube description (licence requires it).
+  More music: put .mp3 files in the music\ folder (add keywords in music\credits.json for Auto to use them).
+
+NOTES
+  Captions are timed to the real pauses in the voice.
+  Renders use 12 CPU threads. GPU rendering was tested on this PC and was slower, so it is off.
+  Map borders are Natural Earth de facto lines. Check disputed borders before publishing.
+  Check every number and date Gemini writes.
+
+
+===== NEW IN VERSION 2 =====
+CHANNEL: pick it in the Channel dropdown (step 1 or step 4). "+" adds a new name, "x" removes one.
+LOOK: Classic (navy), HUD (dark grid, red accent, corner labels like the reference videos), Light editorial.
+FONTS: step 4 has two pickers, one for titles/cards and one for captions. Every Bangla font installed on the
+  PC is listed (your usual ones at the top). To add a font like Purno, copy its .ttf into geo-explainer\fonts
+  and restart the studio.
+NEW SCENE TYPES (Gemini uses them automatically; you can also choose them per scene):
+  globe       rotating 3D globe that turns to the countries in "Camera shows"
+  choropleth  countries shaded by a number: one line per country, e.g.  চীন = 24.1
+  chart       drawn in R: bar, hbar, lollipop, line, area, stacked, donut, pie, waffle, treemap.
+              Data one line per point:  ২০২১ | 24.8   (add "| series" for several lines)
+  broll       real stock footage from Pexels. Write an English search, e.g. "container port cranes".
+              Needs a Pexels key (Settings), otherwise the Avatar Studio key is used.
+EXTRA FILES next to every video: .srt captions, _YOUTUBE.txt (title, chapters, sources, music credit)
+  and _thumbnail.jpg.
+OWN AUDIO: your script is now matched to the recording word by word (forced alignment on the GPU),
+  so scene cuts and captions follow your voice much more closely than before.
+
+===== NEW IN VERSION 3: ANIMATION, MUSIC, SOUND EFFECTS =====
+CHARTS: R now draws every frame, so each chart type builds up differently: bars rise one by one with
+  counting numbers, rankings slide in from the top, lines draw themselves, donut/pie sweep round, stacked
+  bars build layer by layer, waffle fills tile by tile, treemap blocks appear one by one.
+  "stat" cards count up; a percentage (e.g. ৬৮%) also fills a ring.
+SPREAD MAPS (scene type "spread"): something spreading inside a country.
+  What:  flood, conflict, protest, fire, drought, disease, control, cyclone (each has its own colour/texture)
+  How:   "District by district" (lights up in order, nearest to the start first)
+         or "Flowing out from the start point" (an organic patch that stays inside the districts you list)
+  Districts: Bangla or English, old or new spelling (Chattogram/Chittagong, Cumilla/Comilla...).
+  Cyclone: add a path (lat, lon per line) and a storm icon travels along it.
+  Boundaries come from geoBoundaries (BBS/OCHA); the credit is added to _YOUTUBE.txt automatically.
+  Other countries work too: their provinces are downloaded the first time you use them.
+MUSIC: 21 new tension tracks (war drums, dark orchestra, tense guitar) + sombre and victory tracks.
+  "Auto" picks from the mood and never repeats the track of your last few videos.
+SOUND EFFECTS: rain, storm, thunder, river, flood, sea, wind, war, explosion, bomb, gunshot, gunfire, fire,
+  protest crowd, angry crowd, cheering, press, marching army, war drums, war horn, fanfare, siren, police,
+  alarm, helicopter, heartbeat, drum roll, riser, impact, clock, drone.
+  Automatic: chosen from the narration words (বন্যা -> flood, গুলি -> gunfire, বিজয় -> fanfare ...).
+  Manual: type them in a scene's "Sound effects" box, e.g.  rain, gunfire@2.5  (@ = seconds into the scene).
+  Licences: Mixkit (free, no credit needed) and BigSoundBank (CC0).

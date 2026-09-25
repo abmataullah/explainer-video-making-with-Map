@@ -1,0 +1,11 @@
+{
+  "lang": "bn",
+  "channel": "GEO EXPLAINER",
+  "scenes": [
+    {"type": "title", "duration": 3.5, "title": "বঙ্গোপসাগরে ক্ষমতার খেলা", "subtitle": "নমুনা ভিডিও", "focus": ["বাংলাদেশ", "Myanmar", "IND"]},
+    {"type": "map", "duration": 4.5, "headline": "তিন প্রতিবেশী", "focus": ["বাংলাদেশ", "মিয়ানমার"], "highlight": {"বাংলাদেশ": "সবুজ", "Myanmar": "amber", "ভারত": "teal"},
+     "points": [{"name": "চট্টগ্রাম", "lon": 91.83, "lat": 22.33}]},
+    {"type": "timeline", "duration": 5, "headline": "সময়রেখা", "focus": ["BGD"], "events": [{"date": "১৯৪৭", "text": "দেশভাগ"}, {"date": "১৯৭১", "text": "স্বাধীনতা"}, {"date": "২০১২", "text": "সমুদ্রসীমা রায় (মিয়ানমার)"}, {"date": "২০১৪", "text": "সমুদ্রসীমা রায় (ভারত)"}]},
+    {"type": "compare", "duration": 5, "headline": "তুলনা (নমুনা)", "compare": {"a": "বাংলাদেশ", "b": "Myanmar", "rows": [{"label": "নমুনা ১", "a": "১০", "b": "২০"}, {"label": "নমুনা ২", "a": "৩০", "b": "৪০"}], "source": "নমুনা সংখ্যা, পরীক্ষার জন্য"}}
+  ]
+}

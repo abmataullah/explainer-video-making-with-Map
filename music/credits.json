@@ -1,0 +1,450 @@
+{
+  "_license": "Kevin MacLeod (incompetech.com), Creative Commons: By Attribution 4.0. Free for monetised YouTube videos IF the credit is in the video description.",
+  "Crypto.mp3": {
+    "mood": "tense, investigative",
+    "keywords": [
+      "সংকট",
+      "উত্তেজনা",
+      "হুমকি",
+      "ঝুঁকি",
+      "বিতর্ক",
+      "crisis",
+      "tension",
+      "threat",
+      "risk",
+      "dispute",
+      "standoff"
+    ]
+  },
+  "Unanswered Questions.mp3": {
+    "mood": "mystery, open questions",
+    "keywords": [
+      "রহস্য",
+      "অজানা",
+      "রহস্যময়",
+      "অমীমাংসিত",
+      "mystery",
+      "unknown",
+      "unsolved",
+      "unexplained"
+    ]
+  },
+  "Impact Lento.mp3": {
+    "mood": "dramatic, serious",
+    "keywords": [
+      "যুদ্ধ",
+      "সামরিক",
+      "সেনা",
+      "হামলা",
+      "সংঘাত",
+      "ক্ষেপণাস্ত্র",
+      "পারমাণবিক",
+      "আক্রমণ",
+      "war",
+      "military",
+      "army",
+      "attack",
+      "missile",
+      "nuclear",
+      "conflict",
+      "invasion",
+      "strike"
+    ]
+  },
+  "Lightless Dawn.mp3": {
+    "mood": "calm, dark ambient",
+    "keywords": [
+      "জলবায়ু",
+      "পরিবেশ",
+      "সমুদ্র",
+      "নদী",
+      "climate",
+      "environment",
+      "sea level",
+      "river",
+      "nature"
+    ]
+  },
+  "Echoes of Time v2.mp3": {
+    "mood": "reflective, history",
+    "keywords": [
+      "ইতিহাস",
+      "১৯৪৭",
+      "১৯৭১",
+      "ঔপনিবেশিক",
+      "ব্রিটিশ",
+      "দেশভাগ",
+      "মুক্তিযুদ্ধ",
+      "history",
+      "colonial",
+      "partition",
+      "century",
+      "ancient",
+      "independence"
+    ]
+  },
+  "Floating Cities.mp3": {
+    "mood": "hopeful, documentary",
+    "keywords": [
+      "উন্নয়ন",
+      "সম্ভাবনা",
+      "আশা",
+      "প্রবৃদ্ধি",
+      "সহযোগিতা",
+      "development",
+      "growth",
+      "hope",
+      "opportunity",
+      "cooperation",
+      "progress"
+    ]
+  },
+  "Ossuary 6 - Air.mp3": {
+    "mood": "sombre ambient",
+    "keywords": [
+      "শোক",
+      "স্মৃতি",
+      "নীরব",
+      "ধ্বংস",
+      "mourning",
+      "memorial",
+      "ruins",
+      "silence",
+      "destruction"
+    ]
+  },
+  "Hidden Agenda.mp3": {
+    "mood": "intrigue, power games",
+    "keywords": [
+      "স্বার্থ",
+      "প্রভাব",
+      "কূটনীতি",
+      "চাপ",
+      "নিষেধাজ্ঞা",
+      "ক্ষমতা",
+      "influence",
+      "diplomacy",
+      "sanction",
+      "leverage",
+      "rivalry",
+      "power",
+      "pressure"
+    ]
+  },
+  "Covert Affair.mp3": {
+    "mood": "spy, geopolitics",
+    "keywords": [
+      "গোয়েন্দা",
+      "গুপ্তচর",
+      "ষড়যন্ত্র",
+      "গোপন",
+      "অভ্যুত্থান",
+      "spy",
+      "intelligence",
+      "espionage",
+      "secret",
+      "coup",
+      "covert",
+      "cia"
+    ]
+  },
+  "Heartbreaking.mp3": {
+    "mood": "sad, humanitarian",
+    "keywords": [
+      "শরণার্থী",
+      "রোহিঙ্গা",
+      "মানবিক",
+      "গণহত্যা",
+      "মৃত্যু",
+      "নিহত",
+      "দুর্ভিক্ষ",
+      "বন্যা",
+      "ক্ষুধা",
+      "শিবির",
+      "refugee",
+      "humanitarian",
+      "genocide",
+      "famine",
+      "displaced",
+      "camp",
+      "killed",
+      "victims"
+    ]
+  },
+  "Sovereign Quarter.mp3": {
+    "mood": "epic, grand strategy",
+    "keywords": [
+      "বাণিজ্য",
+      "বন্দর",
+      "অর্থনীতি",
+      "করিডোর",
+      "পাইপলাইন",
+      "বিনিয়োগ",
+      "সমুদ্রপথ",
+      "মহাসাগর",
+      "trade",
+      "port",
+      "economy",
+      "corridor",
+      "pipeline",
+      "investment",
+      "shipping",
+      "ocean",
+      "strategy",
+      "empire"
+    ]
+  },
+  "Hitman.mp3": {
+    "title": "Hitman",
+    "mood": "action, dark, driving, epic, intense",
+    "group": "orchestra",
+    "pools": [
+      "war",
+      "power-games",
+      "tension"
+    ],
+    "instruments": "Basses, Violins, Choir, Percussion",
+    "tension": true,
+    "keywords": []
+  },
+  "Clash Defiant.mp3": {
+    "title": "Clash Defiant",
+    "mood": "aggressive, driving, dark, suspenseful",
+    "group": "orchestra",
+    "pools": [
+      "war",
+      "power-games"
+    ],
+    "instruments": "Basses, Cellos, War Horn, Brass, Percussion, Choir",
+    "tension": true,
+    "keywords": []
+  },
+  "Five Armies.mp3": {
+    "title": "Five Armies",
+    "mood": "action, aggressive, dark, driving, epic, intense",
+    "group": "orchestra",
+    "pools": [
+      "war"
+    ],
+    "instruments": "Cellos, French Horns, Trombones, Violins, Marimba, Trumpets, Percussion, Oboes, Clarinets, Flutes, Basses",
+    "tension": true,
+    "keywords": []
+  },
+  "Colossus.mp3": {
+    "title": "Colossus",
+    "mood": "action, dark, epic, intense",
+    "group": "orchestra",
+    "pools": [
+      "war"
+    ],
+    "instruments": "Percussion, Brass, English Horn, Alto Flute, Bass Clarinet, Bassoons",
+    "tension": true,
+    "keywords": []
+  },
+  "Crusade.mp3": {
+    "title": "Crusade",
+    "mood": "dark, epic, somber, suspenseful",
+    "group": "orchestra",
+    "pools": [
+      "sombre",
+      "history"
+    ],
+    "instruments": "French Horns, Trombones, Percussion, Trumpets",
+    "tension": true,
+    "keywords": []
+  },
+  "Gloom Horizon.mp3": {
+    "title": "Gloom Horizon",
+    "mood": "dark, intense, mysterious, suspenseful",
+    "group": "orchestra",
+    "pools": [
+      "tension",
+      "environment",
+      "power-games"
+    ],
+    "instruments": "Basses, Cellos, Violins, Percussion",
+    "tension": true,
+    "keywords": []
+  },
+  "Enter the Maze.mp3": {
+    "title": "Enter the Maze",
+    "mood": "intense, mysterious, suspenseful",
+    "group": "orchestra",
+    "pools": [
+      "tension",
+      "spy",
+      "mystery"
+    ],
+    "instruments": "Percussion, Horn, Misc",
+    "tension": true,
+    "keywords": []
+  },
+  "Darkness is Coming.mp3": {
+    "title": "Darkness is Coming",
+    "mood": "dark, eerie, epic, intense",
+    "group": "orchestra",
+    "pools": [
+      "tension",
+      "war"
+    ],
+    "instruments": "Synths, Percussion, Choir",
+    "tension": true,
+    "keywords": []
+  },
+  "Death of Kings.mp3": {
+    "title": "Death of Kings",
+    "mood": "dark, epic, somber",
+    "group": "orchestra",
+    "pools": [
+      "sombre",
+      "humanitarian"
+    ],
+    "instruments": "French Horns, Trombones, Cimbasso, Trumpets, Drum, Chimes",
+    "tension": true,
+    "keywords": []
+  },
+  "Big Drumming.mp3": {
+    "title": "Big Drumming",
+    "mood": "grooving, driving, intense",
+    "group": "drums",
+    "pools": [
+      "war",
+      "trade-strategy"
+    ],
+    "instruments": "Percussion",
+    "tension": true,
+    "keywords": []
+  },
+  "Firebrand.mp3": {
+    "title": "Firebrand",
+    "mood": "action, driving, grooving, intense",
+    "group": "drums",
+    "pools": [
+      "war",
+      "trade-strategy"
+    ],
+    "instruments": "Percussion",
+    "tension": true,
+    "keywords": []
+  },
+  "Drums of the Deep.mp3": {
+    "title": "Drums of the Deep",
+    "mood": "dark, suspenseful, unnerving",
+    "group": "drums",
+    "pools": [
+      "tension",
+      "environment"
+    ],
+    "instruments": "Percussion, Strings",
+    "tension": true,
+    "keywords": []
+  },
+  "Asian Drums.mp3": {
+    "title": "Asian Drums",
+    "mood": "dark, eerie, suspenseful, unnerving",
+    "group": "drums",
+    "pools": [
+      "tension",
+      "mystery"
+    ],
+    "instruments": "Percussion",
+    "tension": true,
+    "keywords": []
+  },
+  "Controlled Chaos.mp3": {
+    "title": "Controlled Chaos",
+    "mood": "dark, eerie, intense, mysterious, suspenseful, unnerving",
+    "group": "drums",
+    "pools": [
+      "tension",
+      "mystery"
+    ],
+    "instruments": "Synths, Percussion",
+    "tension": true,
+    "keywords": []
+  },
+  "Darkening Developments.mp3": {
+    "title": "Darkening Developments",
+    "mood": "dark, eerie, intense, mysterious, unnerving",
+    "group": "drums",
+    "pools": [
+      "tension",
+      "spy"
+    ],
+    "instruments": "Percussion, Synth Bass, Bass section, Oboe, Bassoon, Clarinet, Piccolo",
+    "tension": true,
+    "keywords": []
+  },
+  "Killers.mp3": {
+    "title": "Killers",
+    "mood": "action, epic, intense",
+    "group": "guitar",
+    "pools": [
+      "war",
+      "tension"
+    ],
+    "instruments": "Guitar, Choir, Percussion, Basses, Cellos, Violas, Violins",
+    "tension": true,
+    "keywords": []
+  },
+  "I Can Feel it Coming.mp3": {
+    "title": "I Can Feel it Coming",
+    "mood": "driving, suspenseful, mysterious",
+    "group": "guitar",
+    "pools": [
+      "spy",
+      "tension",
+      "trade-strategy"
+    ],
+    "instruments": "Guitar, Percussion, Synth",
+    "tension": true,
+    "keywords": []
+  },
+  "Bet You Can ver 2.mp3": {
+    "title": "Bet You Can ver 2",
+    "mood": "aggressive, dark, driving, intense",
+    "group": "guitar",
+    "pools": [
+      "power-games",
+      "tension"
+    ],
+    "instruments": "Guitar, Bass, Kit",
+    "tension": true,
+    "keywords": []
+  },
+  "Night of Chaos.mp3": {
+    "title": "Night of Chaos",
+    "mood": "dark, eerie, mysterious, unnerving",
+    "group": "guitar",
+    "pools": [
+      "mystery",
+      "tension"
+    ],
+    "instruments": "Guitar, Synths, Strings",
+    "tension": true,
+    "keywords": []
+  },
+  "At Launch.mp3": {
+    "title": "At Launch",
+    "mood": "epic, intense, suspenseful, uplifting",
+    "group": "orchestra",
+    "pools": [
+      "hopeful",
+      "victory"
+    ],
+    "instruments": "Brass, Marching Snare, Harmon Mute Trumpet, Strings, Orchestral Percussion, Flute",
+    "tension": false,
+    "keywords": []
+  },
+  "Dhaka.mp3": {
+    "title": "Dhaka",
+    "mood": "mysterious, mystical",
+    "group": "other",
+    "pools": [
+      "history"
+    ],
+    "instruments": "Sarod, Dilruba, Drone",
+    "tension": true,
+    "keywords": []
+  }
+}

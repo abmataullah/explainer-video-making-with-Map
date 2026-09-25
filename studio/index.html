@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Geo Explainer Studio</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#0b1520;--panel:#122132;--panel2:#18293d;--line:#26405c;--text:#e8eef5;--sub:#8ea6bd;--acc:#ffd166;--red:#e63946;--ok:#52b788}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 'Segoe UI','Nirmala UI',sans-serif}
+header{display:flex;align-items:center;gap:14px;padding:12px 22px;border-bottom:1px solid var(--line);background:#0e1b29;position:sticky;top:0;z-index:5}
+header h1{font-size:18px;margin:0;letter-spacing:.5px}header h1 span{color:var(--acc)}
+header .sp{flex:1}
+button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:8px 14px;cursor:pointer;font:inherit}
+button:hover{border-color:var(--acc)}button.pri{background:var(--acc);color:#1a1a1a;border-color:var(--acc);font-weight:700}
+button.big{font-size:18px;padding:14px 26px}
+button.sm{padding:4px 9px;font-size:13px}button:disabled{opacity:.5;cursor:wait}
+main{display:grid;grid-template-columns:250px 1fr;min-height:calc(100vh - 56px)}
+aside{border-right:1px solid var(--line);padding:16px;background:#0e1b29}
+aside h3{font-size:12px;text-transform:uppercase;color:var(--sub);letter-spacing:1px;margin:18px 0 8px}
+.plist div{padding:7px 10px;border-radius:6px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plist div:hover,.plist div.on{background:var(--panel2)}.plist small{color:var(--sub);display:block;font-size:11px}
+section.wrap{padding:22px 28px;max-width:1350px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px}
+.card h2{margin:0 0 12px;font-size:16px;display:flex;align-items:center;gap:10px}
+.card h2 b{background:var(--acc);color:#111;border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+label{display:block;font-size:12px;color:var(--sub);margin:8px 0 4px}
+input,textarea,select{width:100%;background:#0c1826;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:8px 10px;font:inherit}
+textarea{resize:vertical}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}.row>*{flex:1;min-width:140px}
+.row .auto{flex:0 0 auto;min-width:0}
+.chk{display:flex!important;gap:6px;align-items:center;color:var(--text)!important;margin:0!important;white-space:nowrap}
+.chk input{width:auto}
+.scene{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:12px 0}
+.scene .top{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.scene .num{font-weight:800;color:var(--acc);width:28px}
+.scene .top select{width:130px}.scene .top input{flex:1}
+.scene .grid{display:grid;grid-template-columns:1.15fr 1fr 400px;gap:14px}
+.scene .extra{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.prev{width:400px;height:225px;border-radius:8px;border:1px solid var(--line);background:#07131f;display:block}
+.chips{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 8px;border-radius:12px;background:#0c1826;border:1px solid var(--line)}
+.chip img{height:12px;border-radius:2px}.chip.bad{border-color:var(--red);color:#ff9aa2}
+.muted{color:var(--sub);font-size:12px}
+.bar{height:12px;background:#0c1826;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--acc);width:0;transition:width .4s}
+pre.log{background:#08111b;border:1px solid var(--line);border-radius:8px;padding:10px;max-height:200px;overflow:auto;font-size:12px;color:#9fb6cc;white-space:pre-wrap;margin:10px 0 0}
+video{width:100%;max-height:560px;border-radius:10px;background:#000;margin-top:12px}
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;background:#0c1826;border:1px solid var(--line);color:var(--sub)}
+.pill.ok{color:var(--ok);border-color:var(--ok)}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;width:600px;max-width:95vw}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+a{color:var(--acc)}
+.hint{font-size:12px;color:var(--sub);margin-top:6px}
+.or{display:flex;align-items:center;gap:12px;color:var(--sub);font-size:13px;margin:14px 0 4px}
+.or:before,.or:after{content:'';flex:1;height:1px;background:var(--line)}
+@media (max-width:1300px){.scene .grid{grid-template-columns:1fr 1fr}.prev{width:100%;height:auto;aspect-ratio:16/9}}
+</style></head>
+<body>
+<header>
+  <h1>GEO <span>EXPLAINER</span> STUDIO</h1>
+  <span id="projName" class="pill">new video</span>
+  <div class="sp"></div>
+  <button onclick="openFolder('outputs')">Videos folder</button>
+  <button onclick="settingsDlg()">Settings</button>
+  <button onclick="quitApp()" title="Stop the studio">Quit</button>
+</header>
+<main>
+<aside>
+  <button class="pri" style="width:100%" onclick="newProject()">+ New video</button>
+  <h3>Projects</h3><div class="plist" id="plist"></div>
+  <h3>Rendered</h3><div class="plist" id="olist"></div>
+</aside>
+<section class="wrap">
+<div class="card" id="step1">
+  <h2><b>1</b> What is the video about?</h2>
+  <div class="row">
+    <div style="flex:3"><label>Topic</label><input id="topic" placeholder="যেমন: রোহিঙ্গা সংকট ও বাংলাদেশ-মিয়ানমার সীমান্ত"></div>
+    <div><label>Minutes</label><input id="minutes" type="number" value="3" min="1" max="15" step="0.5"></div>
+    <div><label>Language</label><select id="lang"><option value="bn">বাংলা</option><option value="en">English</option></select></div>
+  </div>
+  <label>Your notes, facts and sources (the more you paste, the more accurate the script)</label>
+  <textarea id="notes" rows="4" placeholder="Key points, figures with sources, the argument you want to make..."></textarea>
+  <div class="row">
+    <div><label>Voice</label><select id="voice1"></select></div>
+    <div><label>Format</label><select id="aspect1"><option value="16:9">16:9 YouTube</option><option value="9:16">9:16 Shorts / Reels</option></select></div>
+    <div><label>Music</label><select id="music1" onchange="syncSel('music1','music')"></select></div>
+    <div style="min-width:230px"><label>Music volume <b id="musicVol1Lbl">10%</b></label>
+      <div style="display:flex;gap:6px;align-items:center"><input id="musicVol1" type="range" min="0" max="60" value="10" style="flex:1" oninput="volChanged('musicVol1')">
+      <button class="sm" title="Listen to the selected music at this volume" onclick="previewMusic('music1','musicVol1')">▶</button></div></div>
+    <label class="btn file-btn auto" style="align-self:end" title="Add your own music file">Upload music<input type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac,.flac" hidden onchange="uploadMusic(this,'music1')"></label>
+    <div><label>Channel</label><select id="channel1" onchange="syncSel('channel1','channel')"></select></div>
+    <div><label>Look</label><select id="look1" onchange="syncSel('look1','look')"><option value="classic">Classic (navy)</option><option value="hud">HUD (dark, grid, red)</option><option value="light">Light editorial</option></select></div>
+    <label class="chk auto"><input type="checkbox" id="grounded"> Google Search research (paid Gemini plan)</label>
+  </div>
+  <div class="row" style="margin-top:16px">
+    <button class="pri big auto" id="btnOne" onclick="oneClick()">⚡ Make the whole video</button>
+    <div class="muted" style="flex:2">Writes the script, records the voice and renders the MP4. About 3 to 6 minutes. You can open the scenes afterwards, fix anything and render again.</div>
+  </div>
+  <div class="or">or go step by step</div>
+  <div class="row">
+    <button class="auto" id="btnScript" onclick="writeScript()">Write script only, I'll check it first</button>
+    <button class="auto" onclick="blankScript()">Write it myself</button>
+    <button class="auto" onclick="toggleOwn()">🎧 I have my own audio</button>
+  </div>
+  <div id="own" style="display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+    <h2 style="font-size:15px">🎧 Make the video from my own recording</h2>
+    <div class="muted">Use any recording: ElevenLabs, AI Studio in the browser, or your own voice. No Gemini voice needed.</div>
+    <div class="row">
+      <div style="flex:2"><label>Audio file (mp3, wav, m4a...)</label><input type="file" id="ownFile" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.aac"></div>
+      <div style="flex:2"><label>Video title</label><input id="ownTitle" placeholder="রোহিঙ্গা সংকট"></div>
+    </div>
+    <label>The exact script you recorded. Leave an empty line between scenes (each paragraph becomes one scene).</label>
+    <textarea id="ownScript" rows="8" placeholder="প্রথম দৃশ্যের কথা...
+
+দ্বিতীয় দৃশ্যের কথা..."></textarea>
+    <div class="row" style="margin-top:8px">
+      <label class="chk auto"><input type="checkbox" id="ownGemini" checked> Let Gemini design the maps (automatic maps if Gemini is busy)</label>
+      <label class="chk auto"><input type="checkbox" id="ownRender" checked> Render straight away</label>
+      <div></div>
+      <button class="pri auto" id="btnOwn" onclick="ownAudio()">Build video from my audio</button>
+    </div>
+    <div class="hint">Your words are never changed. The studio matches every word of your script to the recording (forced alignment on your graphics card) to cut the scenes and time the captions.</div>
+  </div>
+</div>
+
+<div class="card" id="jobCard" style="display:none">
+  <h2 id="jobTitle">Working...</h2>
+  <div class="bar"><i id="jobBar"></i></div>
+  <pre class="log" id="jobLog"></pre>
+</div>
+
+<div class="card" id="result" style="display:none"></div>
+
+<div class="card" id="step2" style="display:none">
+  <h2><b>2</b> Scenes <span class="muted" id="totalLen"></span></h2>
+  <div class="row"><div style="flex:3"><label>Video title</label><input id="vtitle"></div>
+    <button class="auto" onclick="toggleJson()">Edit raw JSON</button>
+    <button class="auto" onclick="saveProject()">Save</button></div>
+  <div id="sources" class="hint"></div>
+  <div class="hint">Type countries by name in Bangla or English, separated by commas: <b>বাংলাদেশ, মিয়ানমার</b> or <b>Bangladesh, Myanmar</b>.
+    Colours: লাল/red, কমলা/amber, সবুজ/green, নীল/blue, ফিরোজা/teal, বেগুনি/violet, হলুদ/yellow, গোলাপি/pink, ধূসর/grey.
+    Arrows, one per line: <b>চীন &gt; মিয়ানমার : পাইপলাইন</b>. Points, one per line: <b>চট্টগ্রাম, 22.33, 91.83</b> (name, lat, lon).</div>
+  <textarea id="rawjson" rows="22" style="display:none;margin-top:10px;font-family:Consolas,monospace;font-size:12px"></textarea>
+  <div id="scenes"></div>
+  <button onclick="addScene()">+ Add scene</button>
+</div>
+
+<div class="card" id="step3" style="display:none">
+  <h2><b>3</b> Voice (Gemini)</h2>
+  <div class="row">
+    <div><label>Voice</label><select id="voice"></select></div>
+    <div style="flex:3"><label>Voice direction (keep it short)</label><input id="style"></div>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <button class="pri auto" id="btnAudio" onclick="genAudio()">Generate audio</button>
+    <button class="auto" onclick="genAudio(true)">Regenerate everything</button>
+    <div class="muted">Only changed scenes are re-recorded. Each scene has its own play button.</div>
+  </div>
+  <div class="row" id="recutRow" style="display:none;margin-top:10px">
+    <div class="muted" style="flex:3">This video uses your own recording. If a scene starts too early or late, change its "starts at" time (seconds) in the scene list, then press Re-cut. "Generate audio" skips your recorded scenes.</div>
+    <button class="auto" onclick="recutAudio()">Re-cut my audio</button>
+  </div>
+</div>
+
+<div class="card" id="step4" style="display:none">
+  <h2><b>4</b> Render</h2>
+  <div class="row">
+    <div><label>Format</label><select id="aspect"><option value="16:9">16:9 YouTube</option><option value="9:16">9:16 Shorts / Reels</option></select></div>
+    <div><label>Channel (intro, corner, outro)</label><div style="display:flex;gap:6px"><select id="channel" onchange="syncSel('channel','channel1')"></select>
+      <button class="sm" title="Add a channel name" onclick="addChannel()">+</button><button class="sm" title="Remove this channel name" onclick="delChannel()">✕</button></div></div>
+    <div><label>Look</label><select id="look" onchange="syncSel('look','look1')"><option value="classic">Classic (navy)</option><option value="hud">HUD (dark, grid, red)</option><option value="light">Light editorial</option></select></div>
+    <div><label>Background music</label><select id="music" onchange="syncSel('music','music1')"></select></div>
+    <div style="min-width:230px"><label>Music volume <b id="musicVolLbl">10%</b></label>
+      <div style="display:flex;gap:6px;align-items:center"><input id="musicVol" type="range" min="0" max="60" value="10" style="flex:1" oninput="volChanged('musicVol')">
+      <button class="sm" title="Listen to the selected music at this volume" onclick="previewMusic('music','musicVol')">▶</button></div></div>
+    <label class="btn file-btn auto" style="align-self:end" title="Add your own music file">Upload music<input type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac,.flac" hidden onchange="uploadMusic(this,'music')"></label>
+    <button class="sm auto" style="align-self:end" title="Remove the selected uploaded track" onclick="deleteMusic()">✕</button>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <div><label>Font for titles and cards</label><select id="fontTxt"></select></div>
+    <div><label>Font for captions</label><select id="fontCap"></select></div>
+    <div class="hint" style="flex:2;align-self:end">All Bangla fonts on this PC are listed. To add one (for example Purno), put its .ttf file in the geo-explainer\fonts folder and restart the studio.</div>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <label class="chk auto"><input type="checkbox" id="captions" checked> Captions</label>
+    <label class="chk auto"><input type="checkbox" id="sfx" checked> Sound effects</label>
+    <label class="chk auto"><input type="checkbox" id="autosfx" checked> Choose effects automatically</label>
+    <div style="max-width:130px"><label>Effects volume</label><input id="sfxLevel" type="number" value="1" step="0.1" min="0" max="2"></div>
+    <label class="chk auto"><input type="checkbox" id="intro" checked> Intro</label>
+    <label class="chk auto"><input type="checkbox" id="outro" checked> Outro</label>
+    <div></div>
+    <label class="chk auto" title="Music rises when nobody is speaking"><input type="checkbox" id="musicBoost" checked> Louder in intro and outro</label>
+    <button class="pri auto" id="btnRender" onclick="renderVideo()">Render video</button>
+  </div>
+</div>
+
+</section></main>
+
+<dialog id="dlg">
+  <h2 style="margin-top:0">Settings</h2>
+  <label>Gemini API key (aistudio.google.com &rarr; Get API key)</label>
+  <input id="s_key" placeholder="leave blank to use gemini_key.txt">
+  <div class="row"><div><label>Script model</label><input id="s_script_model"></div>
+    <div><label>Fallback models (comma)</label><input id="s_script_fallback"></div></div>
+  <div class="row"><div><label>Voice model</label><input id="s_tts_model"></div><div><label>Voice fallbacks</label><input id="s_tts_fallback"></div></div>
+  <div class="row"><div><label>Default voice</label><select id="s_voice"></select></div><div style="flex:2"><label>Default voice direction</label><input id="s_style"></div></div>
+  <label>Pexels API key (free at pexels.com/api, used for B-roll footage)</label><input id="s_pexels_key" placeholder="leave blank to use Avatar Studio's key">
+  <div class="row" style="margin-top:16px"><div></div>
+    <button class="auto" onclick="dlg.close()">Cancel</button>
+    <button class="pri auto" onclick="saveSettings()">Save</button></div>
+</dialog>
+
+<script src="/lib/d3-array.min.js"></script>
+<script src="/lib/d3-geo.min.js"></script>
+<script>
+let P = null, S = {}, jsonMode = false, C = [], LOOK = {}, BYISO = {}, WORLD = null;
+const $ = (id) => document.getElementById(id);
+const api = async (url, body) => {
+  const r = await fetch(url, body === undefined ? {} : {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+};
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+
+// ---- countries & colours ----
+const norm = (k) => String(k).trim().toLowerCase().replace(/[\s.'’\-]+/g, '');
+const toIso = (t) => { t = String(t || '').trim(); if (!t) return ''; if (BYISO[t.toUpperCase()]) return t.toUpperCase(); return LOOK[norm(t)] || t; };
+const L = () => (P && P.lang) || $('lang').value;
+const cname = (iso) => { const c = BYISO[iso]; return c ? (L() === 'bn' ? c.bn : c.name) : iso; };
+const COLORS = {red: '#e63946', amber: '#f4a261', teal: '#2a9d8f', blue: '#4895ef', violet: '#9d4edd', green: '#52b788', yellow: '#ffd166', pink: '#ef476f', grey: '#8d99ae'};
+const BN_COL = {red: 'লাল', amber: 'কমলা', teal: 'ফিরোজা', blue: 'নীল', violet: 'বেগুনি', green: 'সবুজ', yellow: 'হলুদ', pink: 'গোলাপি', grey: 'ধূসর'};
+const COL_IN = Object.fromEntries([...Object.entries(BN_COL).map(([e, b]) => [b, e]), ['orange', 'amber'], ['purple', 'violet'], ['gray', 'grey']]);
+const toColor = (c) => { c = String(c || 'red').trim(); return COL_IN[c] || COL_IN[c.toLowerCase()] || c.toLowerCase(); };
+const colName = (c) => (L() === 'bn' ? BN_COL[c] || c : c);
+const colHex = (c) => COLORS[c] || (String(c).startsWith('#') ? c : COLORS.red);
+const AUTO = ['red', 'amber', 'teal', 'blue', 'violet'];
+
+async function init() {
+  S = await api('/api/settings');
+  C = await api('/api/countries');
+  C.forEach((c) => { BYISO[c.iso] = c; [c.iso, c.iso2, c.name, c.bn, ...(c.aliases || [])].forEach((n) => { if (n && !LOOK[norm(n)]) LOOK[norm(n)] = c.iso; }); });
+  const vopts = S.voices.map((v) => `<option>${v}</option>`).join('');
+  ['voice', 'voice1', 's_voice'].forEach((id) => { $(id).innerHTML = vopts; $(id).value = S.voice; });
+  $('style').value = S.style;
+  fillChannels();
+  ['look', 'look1'].forEach((id) => { $(id).value = S.look || 'classic'; });
+  api('/api/fonts').then((fs) => {
+    const fav = fs.filter((f) => /hind|kalpurush|madanmohan|purno/i.test(f));
+    const rest = fs.filter((f) => !fav.includes(f));
+    const o = (f) => `<option>${esc(f)}</option>`;
+    const html = `<optgroup label="Your fonts">${fav.map(o).join('')}</optgroup><optgroup label="All Bangla fonts">${rest.map(o).join('')}</optgroup>`;
+    $('fontTxt').innerHTML = html; $('fontCap').innerHTML = html;
+    $('fontTxt').value = S.font_text || fav[0] || fs[0]; $('fontCap').value = S.font_caption || fav[0] || fs[0];
+  });
+  const mood = (f) => (S.music_moods || {})[f] ? ` (${S.music_moods[f]})` : '';
+  const mopts = '<option value="auto">✨ Auto: match the mood</option><option value="">No music</option>' + S.music_files.map((f) => `<option value="${esc(f)}">${esc(f.replace(/\.[^.]+$/, ''))}${esc(mood(f))}</option>`).join('');
+  const up = new Set(S.music_user || []);
+  const mine = S.music_files.filter((f) => up.has(f)), lib = S.music_files.filter((f) => !up.has(f));
+  const mo = (f) => `<option value="${esc(f)}">${esc(f.replace(/\.[^.]+$/, ''))}${esc(up.has(f) ? '' : mood(f))}</option>`;
+  const mopts2 = '<option value="auto">✨ Auto: match the mood</option><option value="">No music</option>' +
+    (mine.length ? `<optgroup label="Your music">${mine.map(mo).join('')}</optgroup>` : '') + `<optgroup label="Library">${lib.map(mo).join('')}</optgroup>`;
+  const keep1 = $('music1').value, keep = $('music').value;
+  $('music').innerHTML = mopts2; $('music1').innerHTML = mopts2;
+  if (keep) { $('music').value = keep; $('music1').value = keep1 || keep; }
+  const v = Math.round((S.music_volume ?? 0.1) * 100); ['musicVol', 'musicVol1'].forEach((id) => { $(id).value = v; $(id + 'Lbl').textContent = v + '%'; });
+  if (!S.has_key) settingsDlg();
+  refreshLists();
+  fetch('/world.json').then((r) => r.json()).then((w) => { WORLD = buildWorld(w); if (P) drawPreviews(); });
+  const q = new URLSearchParams(location.search).get('p');
+  if (q) loadProject(q);
+}
+async function refreshLists() {
+  const ps = await api('/api/projects');
+  $('plist').innerHTML = ps.map((p) => `<div class="${P && P.name === p.name ? 'on' : ''}" onclick="loadProject('${esc(p.name)}')">${esc(p.title || p.name)}<small>${esc(p.updated)}</small></div>`).join('') || '<span class="muted">none yet</span>';
+  const os_ = await api('/api/outputs');
+  $('olist').innerHTML = os_.slice(0, 15).map((f) => `<div onclick="showVideo('${esc(f)}')">${esc(f)}</div>`).join('') || '<span class="muted">none yet</span>';
+}
+function newProject() { P = null; $('topic').value = ''; $('notes').value = ''; ['step2', 'step3', 'step4', 'result', 'jobCard'].forEach((s) => $(s).style.display = 'none'); $('projName').textContent = 'new video'; window.scrollTo(0, 0); }
+async function loadProject(name) {
+  P = await api('/api/project/' + encodeURIComponent(name));
+  $('topic').value = P.topic || ''; $('lang').value = P.lang || 'bn';
+  if (P.voice) $('voice').value = P.voice; if (P.style) $('style').value = P.style;
+  render(); refreshLists();
+}
+
+// ---- scene editor ----
+const endTxt = (e) => typeof e === 'string' ? cname(e) : Array.isArray(e) ? `${e[1]},${e[0]}` : e ? `${e.lat},${e.lon}` : '';
+const txtEnd = (t) => { t = t.trim(); const m = t.match(/^(-?[\d.]+)\s*,\s*(-?[\d.]+)$/); return m ? {lat: +m[1], lon: +m[2]} : toIso(t); };
+const arrowsToText = (a) => (a || []).map((x) => `${endTxt(x.from)} > ${endTxt(x.to)}${x.label ? ' : ' + x.label : ''}${x.color && x.color !== 'yellow' ? ' #' + colName(x.color) : ''}`).join('\n');
+const hlToText = (h) => Object.entries(h || {}).map(([k, v]) => `${cname(k)}=${colName(v)}`).join(', ');
+function render() {
+  $('projName').textContent = P.title || P.name;
+  ['step2', 'step3', 'step4'].forEach((s) => $(s).style.display = 'block');
+  $('vtitle').value = P.title || '';
+  $('recutRow').style.display = P.upload ? 'flex' : 'none';
+  $('sources').innerHTML = (P.sources || []).length ? 'Sources Gemini used: ' + P.sources.map((s) => `<a href="${esc(s.uri)}" target="_blank">${esc(s.title)}</a>`).join(' · ') : '';
+  const tot = P.scenes.reduce((a, s) => a + (+s.duration || 0), 0);
+  $('totalLen').textContent = `${P.scenes.length} scenes` + (tot ? ` · ${Math.floor(tot / 60)}:${String(Math.round(tot % 60)).padStart(2, '0')}` : '');
+  $('scenes').innerHTML = P.scenes.map(sceneHtml).join('');
+  P.scenes.forEach((_, i) => chips(i));
+  drawPreviews();
+}
+function sceneHtml(s, i) {
+  const t = s.type || 'map';
+  const audio = s.audio ? `<audio controls preload="none" src="/media/${encodeURIComponent(P.name)}/${s.audio}?v=${Date.now()}" style="height:30px;width:240px"></audio> <span class="pill ok">${(+s.duration).toFixed(1)}s</span>` : '<span class="pill">no audio</span>';
+  const inp = (k, v, ph = '') => `<input data-i="${i}" data-k="${k}" value="${esc(v)}" placeholder="${esc(ph)}">`;
+  let extra = '';
+  if (t === 'title') extra = `<div><label>Title</label>${inp('title', s.title)}</div><div><label>Subtitle</label>${inp('subtitle', s.subtitle)}</div>`;
+  if (t === 'stat') extra = `<div><label>Big number</label>${inp('stat.value', s.stat?.value)}</div><div><label>What it measures</label>${inp('stat.label', s.stat?.label)}</div><div style="grid-column:span 2"><label>Source (shown on screen)</label>${inp('stat.source', s.stat?.source)}</div>`;
+  if (t === 'bullets') extra = `<div style="grid-column:span 2"><label>Points (one per line)</label><textarea rows="3" data-i="${i}" data-k="bullets">${esc((s.bullets || []).join('\n'))}</textarea></div>`;
+  if (t === 'quote') extra = `<div><label>Quote</label>${inp('quote.text', s.quote?.text)}</div><div><label>Said by</label>${inp('quote.by', s.quote?.by)}</div>`;
+  if (t === 'timeline') extra = `<div style="grid-column:span 2"><label>Events, one per line: date | text</label><textarea rows="4" data-i="${i}" data-k="events" placeholder="১৯৭১ | স্বাধীনতা">${esc((s.events || []).map((e) => `${e.date} | ${e.text}`).join('\n'))}</textarea></div>`;
+  if (t === 'chart') extra = `<div><label>Chart type</label><select data-i="${i}" data-k="chart.kind">${['bar', 'hbar', 'lollipop', 'line', 'area', 'stacked', 'donut', 'pie', 'waffle', 'treemap'].map((x) => `<option ${x === (s.chart?.kind || 'bar') ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+    <div><label>Chart title</label>${inp('chart.title', s.chart?.title)}</div>
+    <div style="grid-column:span 2"><label>Data, one per line: label | value | series (series only for several lines/groups)</label><textarea rows="4" data-i="${i}" data-k="chart.data" placeholder="২০২০ | 21.7&#10;২০২১ | 24.8">${esc((s.chart?.data || []).map((r) => `${r.label} | ${r.value}${r.group ? ' | ' + r.group : ''}`).join('\n'))}</textarea></div>
+    <div><label>Unit (%, বিলিয়ন $ ...)</label>${inp('chart.unit', s.chart?.unit)}</div><div><label>Source (shown on screen)</label>${inp('chart.source', s.chart?.source)}</div>`;
+  if (t === 'choropleth') extra = `<div style="grid-column:span 2"><label>Values, one per line: country = number</label><textarea rows="4" data-i="${i}" data-k="values" placeholder="চীন = 24.1&#10;ভারত = 13.7">${esc(Object.entries(s.values || {}).map(([k, v]) => `${cname(k)} = ${v}`).join('\n'))}</textarea></div>
+    <div><label>Unit</label>${inp('unit', s.unit)}</div><div><label>Source</label>${inp('source', s.source)}</div>`;
+  if (t === 'spread') extra = `<div><label>What is spreading</label><select data-i="${i}" data-k="effect">${[['flood', 'বন্যা / flood'], ['conflict', 'সংঘাত / fighting'], ['protest', 'বিক্ষোভ / protest'], ['fire', 'আগুন / fire'], ['drought', 'খরা / drought'], ['disease', 'রোগ / disease'], ['control', 'নিয়ন্ত্রণ / control'], ['cyclone', 'ঘূর্ণিঝড় / cyclone']].map(([v, l]) => `<option value="${v}" ${v === (s.effect || 'flood') ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    <div><label>How it spreads</label><select data-i="${i}" data-k="mode"><option value="regions" ${(s.mode || 'regions') === 'regions' ? 'selected' : ''}>District by district</option><option value="spread" ${s.mode === 'spread' ? 'selected' : ''}>Flowing out from the start point</option></select></div>
+    <div style="grid-column:span 2"><label>Affected districts, in order (Bangla or English, comma or one per line)</label><textarea rows="2" data-i="${i}" data-k="regions" placeholder="সুনামগঞ্জ, সিলেট, নেত্রকোনা, মৌলভীবাজার">${esc((s.regions || []).join(', '))}</textarea></div>
+    <div><label>Starts at (district, or lat, lon)</label>${inp('origin', typeof s.origin === 'object' && s.origin ? `${s.origin.lat}, ${s.origin.lon}` : (s.origin || ''), 'সুনামগঞ্জ')}</div>
+    <div><label>Level</label><select data-i="${i}" data-k="level"><option value="2" ${String(s.level || 2) === '2' ? 'selected' : ''}>Districts (জেলা)</option><option value="1" ${String(s.level) === '1' ? 'selected' : ''}>Divisions (বিভাগ)</option></select></div>
+    <div><label>Camera</label><select data-i="${i}" data-k="zoom"><option value="">Automatic</option><option value="regions" ${s.zoom === 'regions' ? 'selected' : ''}>Close on the affected area</option><option value="country" ${s.zoom === 'country' ? 'selected' : ''}>Whole country</option></select></div>
+    <div><label>Legend text</label>${inp('legend', s.legend, 'বন্যাকবলিত এলাকা')}</div>
+    <div style="grid-column:span 2"><label>Cyclone path, one point per line: lat, lon (only for cyclone)</label><textarea rows="2" data-i="${i}" data-k="track" placeholder="15.5, 89.0&#10;19.0, 90.2&#10;21.8, 91.8">${esc((s.track || []).map((q) => `${q[1]}, ${q[0]}`).join('\n'))}</textarea></div>`;
+  if (t === 'broll') extra = `<div style="grid-column:span 2"><label>Footage search, in English (2-4 words)</label>${inp('broll', s.broll, 'Chittagong port ships')}</div>`;
+  if (t === 'compare') extra = `<div><label>Country A</label>${inp('compare.a', cname(s.compare?.a || ''))}</div><div><label>Country B</label>${inp('compare.b', cname(s.compare?.b || ''))}</div>
+    <div style="grid-column:span 2"><label>Rows, one per line: label | A | B</label><textarea rows="3" data-i="${i}" data-k="compare.rows" placeholder="জনসংখ্যা | ১৭ কোটি | ৫.৪ কোটি">${esc((s.compare?.rows || []).map((r) => `${r.label} | ${r.a} | ${r.b}`).join('\n'))}</textarea></div>
+    <div style="grid-column:span 2"><label>Source</label>${inp('compare.source', s.compare?.source)}</div>`;
+  return `<div class="scene">
+   <div class="top"><span class="num">${i + 1}</span>
+    <select data-i="${i}" data-k="type">${['map', 'globe', 'spread', 'choropleth', 'chart', 'broll', 'title', 'stat', 'bullets', 'timeline', 'compare', 'quote'].map((x) => `<option ${x === t ? 'selected' : ''}>${x}</option>`).join('')}</select>
+    ${inp('headline', s.headline, 'On-screen headline')}
+    <button class="sm" title="Move up" onclick="move(${i},-1)">↑</button><button class="sm" title="Move down" onclick="move(${i},1)">↓</button>
+    <button class="sm" title="Duplicate" onclick="dupScene(${i})">⧉</button><button class="sm" title="Delete" onclick="delScene(${i})">✕</button></div>
+   <div class="grid">
+    <div><label>Narration</label><textarea rows="6" data-i="${i}" data-k="narration">${esc(s.narration)}</textarea>
+      <div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${audio}${s.audio_src === 'upload' ? `<span class="pill">your audio</span>${i > 0 ? `<label class="chk" style="font-size:12px">starts at <input style="width:80px" type="number" step="0.1" data-i="${i}" data-k="start" value="${s.start ?? ''}"> s</label>` : ''}` : `<button class="sm" onclick="genAudio(false,${i})">🎙 Voice this scene</button>`}</div></div>
+    <div class="extra">
+      <div><label>Camera shows</label>${inp('focus', (s.focus || []).map(cname).join(', '), 'বাংলাদেশ, মিয়ানমার')}</div>
+      <div><label>Colour countries</label>${inp('highlight', hlToText(s.highlight), 'বাংলাদেশ=সবুজ, ভারত=নীল')}</div>
+      <div><label>Arrows</label><textarea rows="2" data-i="${i}" data-k="arrows" placeholder="চীন > মিয়ানমার : পাইপলাইন">${esc(arrowsToText(s.arrows))}</textarea></div>
+      <div><label>Points</label><textarea rows="2" data-i="${i}" data-k="points" placeholder="চট্টগ্রাম, 22.33, 91.83">${esc((s.points || []).map((p) => `${p.name}, ${p.lat}, ${p.lon}`).join('\n'))}</textarea></div>
+      ${extra}
+      <div style="grid-column:span 2"><label>Sound effects (optional; empty = automatic). e.g. rain, gunfire@2.5</label>${inp('sfx', Array.isArray(s.sfx) ? s.sfx.map((x) => typeof x === 'string' ? x : x.name).join(', ') : (s.sfx || ''), 'rain, thunder@3')}</div>
+      <div style="grid-column:span 2" class="chips" id="chips${i}"></div>
+    </div>
+    <div><svg class="prev" id="prev${i}" viewBox="0 0 1920 1080"></svg><div class="muted" style="margin-top:4px">Preview of where the camera ends up</div></div>
+   </div></div>`;
+}
+function chips(i) {
+  const s = P.scenes[i], el = $('chips' + i); if (!el) return;
+  const seen = new Set(), out = [];
+  const add = (x) => { if (!x || typeof x !== 'string' || seen.has(x)) return; seen.add(x); const c = BYISO[x];
+    out.push(c ? `<span class="chip">${c.iso2 ? `<img src="/flags/${c.iso2}.svg">` : ''}${esc(cname(x))}</span>` : `<span class="chip bad" title="Not recognised. Check the spelling.">✗ ${esc(x)}</span>`); };
+  (s.focus || []).forEach(add); Object.keys(s.highlight || {}).forEach(add);
+  (s.arrows || []).forEach((a) => { add(a.from); add(a.to); });
+  if (s.compare) { add(s.compare.a); add(s.compare.b); }
+  el.innerHTML = out.join('');
+}
+function upd(el) {
+  const i = +el.dataset.i, s = P.scenes[i], k = el.dataset.k, v = el.value;
+  const lines = (t) => t.split('\n').map((x) => x.trim()).filter(Boolean);
+  const bnNum = (x) => +String(x || '').replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d)).replace(/[^\d.\-]/g, '');
+  if (k === 'chart.data') { s.chart = s.chart || {}; s.chart.data = lines(v).map((l) => { const [a, b, c] = l.split('|').map((x) => (x || '').trim());
+    const o = {label: a, value: bnNum(b)}; if (c) o.group = c; return o; }).filter((o) => o.label && isFinite(o.value) && String(o.value) !== ''); }
+  else if (k === 'values') { s.values = {}; lines(v).forEach((l) => { const [a, b] = l.split('='); if (a && b !== undefined && isFinite(bnNum(b))) s.values[toIso(a)] = bnNum(b); });
+    if (!(s.focus || []).length) s.focus = Object.keys(s.values).slice(0, 12); }
+  else if (k === 'regions') s.regions = v.split(/[,،\n]+/).map((x) => x.trim()).filter(Boolean);
+  else if (k === 'track') s.track = lines(v).map((l) => l.split(',').map((x) => +x.trim())).filter((a) => a.length === 2 && a.every(isFinite)).map(([la, lo]) => [lo, la]);
+  else if (k === 'origin') { const m = v.match(/^\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*$/); s.origin = m ? {lat: +m[1], lon: +m[2]} : v.trim(); }
+  else if (k === 'level') s.level = +v;
+  else if (k === 'sfx') s.sfx = v.split(',').map((x) => x.trim()).filter(Boolean);
+  else if (k === 'focus') s.focus = v.split(/[,،\n]+/).map(toIso).filter(Boolean);
+  else if (k === 'highlight') { s.highlight = {}; v.split(/[,\n]+/).forEach((p, j) => { const [a, b] = p.split('='); if (a && a.trim()) s.highlight[toIso(a)] = b ? toColor(b) : AUTO[j % 5]; }); }
+  else if (k === 'arrows') s.arrows = lines(v).filter((l) => l.includes('>')).map((l) => {
+    let color; const cm = l.match(/#(\S+)\s*$/); if (cm) { color = toColor(cm[1]); l = l.replace(/#\S+\s*$/, ''); }
+    const [ft, rest] = l.split('>'); const [tt, ...lab] = rest.split(':');
+    const o = {from: txtEnd(ft), to: txtEnd(tt)}; if (lab.length) o.label = lab.join(':').trim(); if (color) o.color = color; return o; });
+  else if (k === 'points') s.points = lines(v).map((l) => l.split(',').map((x) => x.trim())).filter((a) => a.length >= 3).map((a) => ({name: a.slice(0, a.length - 2).join(', '), lat: +a[a.length - 2], lon: +a[a.length - 1]}));
+  else if (k === 'bullets') s.bullets = lines(v);
+  else if (k === 'events') s.events = lines(v).map((l) => { const [d, ...t] = l.split('|'); return {date: d.trim(), text: t.join('|').trim()}; });
+  else if (k === 'compare.rows') { s.compare = s.compare || {}; s.compare.rows = lines(v).map((l) => { const [a, b, c] = l.split('|').map((x) => (x || '').trim()); return {label: a, a: b, b: c}; }); }
+  else if (k === 'compare.a' || k === 'compare.b') { s.compare = s.compare || {}; s.compare[k.slice(-1)] = toIso(v); }
+  else if (k.includes('.')) { const [a, b] = k.split('.'); s[a] = s[a] || {}; s[a][b] = v; }
+  else s[k] = v;
+  if (k === 'type') { render(); } else { chips(i); drawPreview(i); }
+  dirty();
+}
+let saveT; function dirty() { clearTimeout(saveT); saveT = setTimeout(saveProject, 800); }
+document.addEventListener('change', (e) => { if (e.target.dataset && e.target.dataset.k) upd(e.target); });
+async function saveProject() {
+  if (!P) return;
+  if (jsonMode) { try { P.scenes = JSON.parse($('rawjson').value); } catch (e) { alert('JSON error: ' + e.message); return; } }
+  P.title = $('vtitle').value; P.voice = $('voice').value; P.style = $('style').value; P.lang = $('lang').value;
+  P = await api('/api/project', P);
+}
+function toggleJson() {
+  if (!P) return;
+  if (!jsonMode) { $('rawjson').value = JSON.stringify(P.scenes, null, 2); $('rawjson').style.display = 'block'; $('scenes').style.display = 'none'; jsonMode = true; }
+  else { try { P.scenes = JSON.parse($('rawjson').value); } catch (e) { alert('JSON error: ' + e.message); return; }
+    $('rawjson').style.display = 'none'; $('scenes').style.display = 'block'; jsonMode = false; render(); saveProject(); }
+}
+function addScene() { P.scenes.push({type: 'map', headline: '', narration: '', focus: (P.scenes.at(-1) || {}).focus || []}); render(); dirty(); }
+function delScene(i) { if (confirm('Delete scene ' + (i + 1) + '?')) { P.scenes.splice(i, 1); render(); dirty(); } }
+function dupScene(i) { P.scenes.splice(i + 1, 0, JSON.parse(JSON.stringify({...P.scenes[i], audio: null, audio_hash: null}))); render(); dirty(); }
+function move(i, d) { const j = i + d; if (j < 0 || j >= P.scenes.length) return; [P.scenes[i], P.scenes[j]] = [P.scenes[j], P.scenes[i]]; render(); dirty(); }
+// ---- live map preview (same projection and camera maths as the video) ----
+const WW = 4000;
+function buildWorld(w) {
+  const proj = d3.geoMercator().scale(WW / (2 * Math.PI)).translate([WW / 2, WW / 2 * 0.72]);
+  const path = d3.geoPath(proj);
+  const feats = w.features.map((f) => ({iso: f.properties.iso, d: path(f) || '', f, label: proj([f.properties.lx, f.properties.ly])}));
+  const byIso = Object.fromEntries(feats.map((c) => [c.iso, c]));
+  const base = feats.map((c) => `<path d="${c.d}"/>`).join('');
+  const bounds = (c) => {
+    if (c._b) return c._b;
+    const g = c.f.geometry, polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+    const items = polys.map((p) => { const ft = {type: 'Feature', geometry: {type: 'Polygon', coordinates: p}}; return {ft, area: d3.geoArea(ft), cen: d3.geoCentroid(ft)}; });
+    const big = items.reduce((a, b) => (b.area > a.area ? b : a));
+    let b = null;
+    items.filter((it) => it.area >= big.area * 0.04 && Math.abs(it.cen[0] - big.cen[0]) < 40 && Math.abs(it.cen[1] - big.cen[1]) < 30).forEach((it) => {
+      const pb = path.bounds(it.ft); b = b ? [[Math.min(b[0][0], pb[0][0]), Math.min(b[0][1], pb[0][1])], [Math.max(b[1][0], pb[1][0]), Math.max(b[1][1], pb[1][1])]] : pb; });
+    return (c._b = b);
+  };
+  return {proj, feats, byIso, base, bounds};
+}
+const anchorPt = (e) => { if (!e) return null; if (typeof e === 'object') return WORLD.proj([+e.lon, +e.lat]); const c = WORLD.byIso[e]; return c ? c.label : null; };
+function camFor(s, last) {
+  const boxes = [];
+  let focus = s.focus || [];
+  if (s.type === 'compare' && s.compare && !focus.length) focus = [s.compare.a, s.compare.b];
+  focus.forEach((k) => { const c = WORLD.byIso[k]; if (c) boxes.push(WORLD.bounds(c)); });
+  const pt = (p) => p && boxes.push([[p[0] - 5, p[1] - 5], [p[0] + 5, p[1] + 5]]);
+  (s.arrows || []).forEach((a) => { pt(anchorPt(a.from)); pt(anchorPt(a.to)); });
+  (s.points || []).forEach((p) => pt(WORLD.proj([+p.lon, +p.lat])));
+  if (!boxes.length) return last;
+  const x0 = Math.min(...boxes.map((b) => b[0][0])), y0 = Math.min(...boxes.map((b) => b[0][1]));
+  const x1 = Math.max(...boxes.map((b) => b[1][0])), y1 = Math.max(...boxes.map((b) => b[1][1]));
+  return {cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w: Math.max(x1 - x0, 25), h: Math.max(y1 - y0, 25)};
+}
+function hlOf(s) {
+  const m = {}; Object.entries(s.highlight || {}).forEach(([k, v]) => { m[k] = colHex(v); });
+  if (s.type === 'choropleth') Object.keys(s.values || {}).forEach((k) => { m[k] = COLORS.amber; });
+  if (s.type === 'compare' && s.compare) { if (s.compare.a && !m[s.compare.a]) m[s.compare.a] = COLORS.red; if (s.compare.b && !m[s.compare.b]) m[s.compare.b] = COLORS.blue; }
+  return m;
+}
+function drawPreviews() { if (!WORLD || !P) return; P.scenes.forEach((_, i) => drawPreview(i)); }
+function drawPreview(i) {
+  if (!WORLD || !P) return;
+  const el = $('prev' + i); if (!el) return;
+  let cam = {cx: WW / 2, cy: WW / 2 * 0.62, w: WW * 0.95, h: WW * 0.5};
+  for (let j = 0; j <= i; j++) cam = camFor(P.scenes[j], cam);
+  const s = P.scenes[i], W = 1920, H = 1080, k = Math.min(W / (cam.w * 1.6), H / (cam.h * 1.6));
+  const T = (p) => [(p[0] - cam.cx) * k + W / 2, (p[1] - cam.cy) * k + H / 2];
+  const hl = hlOf(s);
+  let svg = `<rect width="${W}" height="${H}" fill="#0b1d2e"/><g transform="translate(${W / 2},${H / 2}) scale(${k}) translate(${-cam.cx},${-cam.cy})" fill="#1b3148" stroke="#4a6784" stroke-width="${0.8 / k}">${WORLD.base}`;
+  Object.entries(hl).forEach(([iso, c]) => { const f = WORLD.byIso[iso]; if (f) svg += `<path d="${f.d}" fill="${c}"/>`; });
+  svg += '</g>';
+  (s.arrows || []).forEach((a) => { const A = anchorPt(a.from), B = anchorPt(a.to); if (!A || !B) return; const [x1, y1] = T(A), [x2, y2] = T(B);
+    const len = Math.hypot(x2 - x1, y2 - y1) || 1, bend = Math.min(len * 0.25, 160), qx = (x1 + x2) / 2 - (y2 - y1) / len * bend, qy = (y1 + y2) / 2 + (x2 - x1) / len * bend;
+    svg += `<path d="M${x1},${y1} Q${qx},${qy} ${x2},${y2}" fill="none" stroke="${colHex(a.color || 'yellow')}" stroke-width="8"/><circle cx="${x2}" cy="${y2}" r="12" fill="${colHex(a.color || 'yellow')}"/>`; });
+  (s.points || []).forEach((p) => { const P_ = WORLD.proj([+p.lon, +p.lat]); if (!P_) return; const [x, y] = T(P_);
+    svg += `<circle cx="${x}" cy="${y}" r="14" fill="#ffd166" stroke="#07131f" stroke-width="4"/><text x="${x + 24}" y="${y + 12}" fill="#fff" font-size="40" font-weight="700">${esc(p.name)}</text>`; });
+  Object.keys(hl).forEach((iso) => { const f = WORLD.byIso[iso]; if (!f) return; const [x, y] = T(f.label);
+    svg += `<text x="${x}" y="${y}" fill="#fff" font-size="46" font-weight="800" text-anchor="middle" stroke="#07131f" stroke-width="8" paint-order="stroke">${esc(cname(iso))}</text>`; });
+  if (!['map', 'globe', 'choropleth', 'broll', 'spread'].includes(s.type || 'map')) svg += `<rect width="${W}" height="${H}" fill="rgba(4,10,18,.45)"/><text x="${W / 2}" y="${H / 2}" fill="#ffd166" font-size="80" font-weight="800" text-anchor="middle">${esc((s.type || '').toUpperCase())} CARD</text>`;
+  el.innerHTML = svg;
+}
+
+// ---- jobs ----
+async function runJob(title, url, body, btn) {
+  if (btn) btn.disabled = true;
+  $('jobCard').style.display = 'block'; $('jobTitle').textContent = title; $('jobBar').style.width = '2%'; $('jobLog').textContent = '';
+  $('jobCard').scrollIntoView({behavior: 'smooth', block: 'nearest'});
+  try {
+    const {job} = await api(url, body);
+    return await watchJob(title, job);
+  } finally { if (btn) btn.disabled = false; }
+}
+async function watchJob(title, job) {
+  $('jobCard').style.display = 'block';
+  {
+    while (true) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const j = await api('/api/job/' + job);
+      $('jobBar').style.width = Math.max(2, j.progress) + '%';
+      $('jobTitle').textContent = `${title} ${j.status === 'running' ? j.progress + '%' : ''}`;
+      $('jobLog').textContent = j.log.join('\n'); $('jobLog').scrollTop = 1e9;
+      if (j.status === 'done') { $('jobTitle').textContent = title + ': done'; return j.result; }
+      if (j.status === 'error') {
+        $('jobTitle').innerHTML = esc(title) + ': stopped' + (j.kind === 'oneclick' ? ` <button class="pri sm" onclick="oneClick(${j.project ? `'${esc(j.project)}'` : ''})">Try again (keeps finished parts)</button>` : '');
+        $('jobLog').textContent += '\n\nERROR: ' + j.error; if (j.project) loadProject(j.project); throw new Error(j.error); }
+    }
+  }
+}
+function fillChannels() {
+  const list = (S.channels && S.channels.length) ? S.channels : ['GEO EXPLAINER'];
+  const html = list.map((c) => `<option>${esc(c)}</option>`).join('');
+  ['channel', 'channel1'].forEach((id) => { $(id).innerHTML = html; $(id).value = list.includes(S.channel) ? S.channel : list[0]; });
+}
+function syncSel(from, to) { $(to).value = $(from).value; }
+let _prev = null;
+function volChanged(id) {
+  const v = $(id).value; ['musicVol', 'musicVol1'].forEach((x) => { $(x).value = v; $(x + 'Lbl').textContent = v + '%'; });
+  if (_prev) _prev.volume = Math.min(1, v / 100);
+  S.music_volume = v / 100;
+}
+function previewMusic(sel, vol) {
+  if (_prev) { _prev.pause(); const was = _prev; _prev = null; if (was.dataset.f === $(sel).value) return; }
+  const f = $(sel).value;
+  if (!f || f === 'auto') return alert('Pick a track first (Auto chooses one at render time).');
+  _prev = new Audio('/music/' + encodeURIComponent(f)); _prev.dataset.f = f;
+  _prev.volume = Math.min(1, $(vol).value / 100); _prev.play();
+  setTimeout(() => { if (_prev && _prev.dataset.f === f) { _prev.pause(); _prev = null; } }, 20000);
+}
+async function uploadMusic(inp, sel) {
+  const f = inp.files[0]; if (!f) return;
+  const fd = new FormData(); fd.append('file', f);
+  const r = await fetch('/api/music/upload', {method: 'POST', body: fd});
+  const j = await r.json();
+  if (!r.ok || j.error) return alert(j.error || 'Upload failed');
+  S = await api('/api/settings');
+  await init();
+  $('music').value = j.file; $('music1').value = j.file;
+  inp.value = '';
+}
+async function deleteMusic() {
+  const f = $('music').value;
+  if (!(S.music_user || []).includes(f)) return alert('Select one of your uploaded tracks to remove it.');
+  if (!confirm(`Remove "${f}"?`)) return;
+  await api('/api/music/delete', {file: f}); await init();
+}
+async function addChannel() {
+  const n = (prompt('New channel name (as it should appear in the video):') || '').trim();
+  if (!n) return;
+  S.channels = [...new Set([...(S.channels || []), n])]; S.channel = n;
+  await api('/api/settings', {channels: S.channels, channel: n}); fillChannels();
+}
+async function delChannel() {
+  const n = $('channel').value;
+  if (!n || !confirm(`Remove "${n}" from the list?`)) return;
+  S.channels = (S.channels || []).filter((c) => c !== n); S.channel = S.channels[0] || '';
+  await api('/api/settings', {channels: S.channels, channel: S.channel}); fillChannels();
+}
+const renderOpts = (aspect, music) => ({aspect, channel: $('channel').value, look: $('look').value,
+  font_text: $('fontTxt').value, font_caption: $('fontCap').value, music, musicVolume: +$('musicVol').value / 100,
+  musicBoost: $('musicBoost').checked ? 1.8 : 1,
+  captions: $('captions').checked, sfx: $('sfx').checked, auto_sfx: $('autosfx').checked, sfx_level: +$('sfxLevel').value, intro: $('intro').checked, outro: $('outro').checked});
+async function oneClick(resume) {
+  const topic = $('topic').value.trim(); if (!topic && !resume) return alert('Write a topic first');
+  $('result').style.display = 'none';
+  const r = await runJob('Making the video', '/api/oneclick', {topic, notes: $('notes').value, minutes: +$('minutes').value, lang: $('lang').value,
+    grounded: $('grounded').checked, name: topic, resume: resume || null, voice: $('voice1').value, render: renderOpts($('aspect1').value, $('music1').value)}, $('btnOne'));
+  await loadProject(r.project); showVideo(r.file, (r.render || {}).credit || r.credit); refreshLists();
+}
+function toggleOwn() { const o = $('own'); o.style.display = o.style.display === 'none' ? 'block' : 'none'; if (o.style.display === 'block') o.scrollIntoView({behavior: 'smooth'}); }
+async function ownAudio(resume) {
+  const f = $('ownFile').files[0];
+  if (!f) return alert('Choose your audio file first');
+  if (!$('ownScript').value.trim()) return alert('Paste the script you recorded');
+  const fd = new FormData();
+  fd.append('audio', f); fd.append('script', $('ownScript').value); fd.append('title', $('ownTitle').value.trim());
+  fd.append('name', $('ownTitle').value.trim() || f.name.replace(/\.[^.]+$/, ''));
+  fd.append('lang', $('lang').value); fd.append('design', $('ownGemini').checked ? 'gemini' : 'auto');
+  if ($('ownRender').checked) fd.append('render', JSON.stringify(renderOpts($('aspect1').value, $('music1').value)));
+  const btn = $('btnOwn'); btn.disabled = true;
+  $('jobCard').style.display = 'block'; $('jobTitle').textContent = 'Uploading audio...'; $('jobLog').textContent = '';
+  try {
+    const r = await fetch('/api/own_audio', {method: 'POST', body: fd});
+    if (!r.ok) throw new Error(await r.text());
+    const {job} = await r.json();
+    const res = await watchJob('Building from your audio', job);
+    await loadProject(res.project);
+    if (res.file) showVideo(res.file, res.credit); else $('step2').scrollIntoView({behavior: 'smooth'});
+    refreshLists();
+  } finally { btn.disabled = false; }
+}
+async function recutAudio() {
+  const cuts = P.scenes.slice(1).map((s) => +s.start);
+  if (cuts.some((c) => !(c > 0))) return alert('Every scene after the first needs a start time in seconds');
+  await saveProject();
+  await runJob('Re-cutting your audio', '/api/recut/' + encodeURIComponent(P.name), {cuts}, null);
+  await loadProject(P.name);
+}
+async function writeScript() {
+  const topic = $('topic').value.trim(); if (!topic) return alert('Write a topic first');
+  const r = await runJob('Writing script', '/api/script', {topic, notes: $('notes').value, minutes: +$('minutes').value, lang: $('lang').value, grounded: $('grounded').checked, name: P ? P.name : topic}, $('btnScript'));
+  await loadProject(r.project);
+  $('voice').value = $('voice1').value; $('aspect').value = $('aspect1').value; $('music').value = $('music1').value;
+  $('step2').scrollIntoView({behavior: 'smooth'});
+}
+async function blankScript() {
+  const topic = $('topic').value.trim() || 'untitled';
+  P = await api('/api/project', {name: topic, title: topic, topic, lang: $('lang').value, scenes: [{type: 'title', title: topic, narration: '', focus: ['BGD']}, {type: 'map', headline: '', narration: '', focus: ['BGD']}]});
+  render(); refreshLists();
+}
+async function genAudio(force, scene) {
+  await saveProject();
+  await runJob(scene === undefined ? 'Recording voice' : `Recording scene ${scene + 1}`, '/api/audio/' + encodeURIComponent(P.name), {force: !!force, scene}, $('btnAudio'));
+  await loadProject(P.name);
+}
+async function renderVideo() {
+  await saveProject();
+  const r = await runJob('Rendering video', '/api/render/' + encodeURIComponent(P.name), renderOpts($('aspect').value, $('music').value), $('btnRender'));
+  showVideo(r.file, r.credit); refreshLists();
+}
+function showVideo(f, credit) {
+  $('result').style.display = 'block';
+  $('result').innerHTML = `<h2>Your video</h2><video controls src="/video/${encodeURIComponent(f)}"></video><div class="row" style="margin-top:8px"><div class="hint">${esc(f)} is in the outputs folder. To change something: edit the scenes below, press "Generate audio" (only changed scenes are re-recorded), then "Render video".</div><button class="auto" onclick="openFolder('outputs')">Open folder</button></div>` +
+    (credit ? `<label>Music credit: paste this in the YouTube description (the licence requires it)</label><textarea rows="3" readonly onclick="this.select()">${esc(credit)}</textarea>` : '');
+  $('result').scrollIntoView({behavior: 'smooth'});
+}
+const openFolder = (what) => api('/api/open', {what});
+const SK = ['script_model', 'script_fallback', 'tts_model', 'tts_fallback', 'pexels_key', 'voice', 'style'];
+function settingsDlg() { SK.forEach((k) => $('s_' + k).value = S[k] || ''); $('s_key').value = S.gemini_key || ''; dlg.showModal(); }
+async function saveSettings() {
+  const b = {gemini_key: $('s_key').value.trim()};
+  SK.forEach((k) => b[k] = $('s_' + k).value.trim());
+  await api('/api/settings', b); dlg.close(); init();
+}
+async function quitApp() { if (confirm('Stop Geo Explainer Studio?')) { await api('/api/quit', {}); document.body.innerHTML = '<h2 style="padding:40px">Studio stopped. Start it again from GeoExplainer.exe.</h2>'; } }
+init();
+</script></body></html>

@@ -1,0 +1,9 @@
+flask
+google-genai
+numpy
+fonttools
+# speech alignment for "own audio" (can live in a separate Python, see GEO_ALIGN_PY in README)
+faster-whisper
+torch
+torchaudio
+uroman

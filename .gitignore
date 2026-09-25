@@ -1,0 +1,35 @@
+# heavy or generated
+node_modules/
+outputs/
+out/
+projects/
+cache/
+logs/
+build_exe/
+backup_before_v2/
+public/_render/
+data/adm/
+*.log
+*.exe
+__pycache__/
+still_test.bat
+studio/index.new.html
+studio/own_audio_part.py
+
+# private: API keys and personal settings
+settings.json
+gemini_key.txt
+.env
+
+# media downloaded by tools/get_audio.py (licences do not allow re-sharing some of them)
+music/*.mp3
+music/*.wav
+music/*.m4a
+music/*.ogg
+music/*.aac
+music/*.flac
+public/sfx/lib/*.mp3
+
+# your own fonts
+fonts/*
+!fonts/README.txt
