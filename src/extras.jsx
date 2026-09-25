@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {AbsoluteFill, Img, OffthreadVideo, staticFile, interpolate, spring, Easing,
+import {AbsoluteFill, Img, OffthreadVideo, staticFile, interpolate, interpolateColors, spring, Easing,
   delayRender, continueRender} from 'remotion';
 import {geoOrthographic, geoPath, geoGraticule10, geoDistance} from 'd3-geo';
 import {features, findCountry} from './geo';
@@ -7,6 +7,27 @@ import {features, findCountry} from './geo';
 export const MONO = "Consolas, 'Cascadia Mono', 'Courier New', monospace";
 const clamp = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'};
 const ease = Easing.bezier(0.65, 0, 0.35, 1);
+
+// ---- text size: one multiplier for every caption, card and label (Settings > Text size) ----
+export const TXT = {k: 1.25};
+export const FS = (n) => Math.round(n * TXT.k);
+
+// ---- background colour: any base colour becomes a full palette (sea, land, panels) ----
+export const BGS = {navy: '#0b2447', blue: '#0d3b66', red: '#5a0f1a', maroon: '#3d0a12', teal: '#083d44',
+  green: '#0f3d24', purple: '#2b1150', brown: '#3b2412', charcoal: '#15181c'};
+const hx = (h) => { const n = parseInt(String(h).replace('#', ''), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const mixc = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+const rgb = (c) => `rgb(${c.join(',')})`;
+export const bgTheme = (key) => {
+  const h = BGS[key] || (/^#[0-9a-f]{6}$/i.test(String(key || '')) ? key : null);
+  if (!h) return {};
+  const c = hx(h), K = [0, 0, 0], Wt = [255, 255, 255];
+  const red = c[0] > c[2] * 1.6 && c[0] > c[1] * 1.6;
+  return {bg0: rgb(mixc(c, K, 0.42)), bg1: rgb(c), sea: rgb(mixc(c, K, 0.22)), land: rgb(mixc(c, Wt, 0.14)),
+    edge: rgb(mixc(c, Wt, 0.4)), panel: `rgba(${mixc(c, K, 0.5).join(',')},0.9)`, dim: mixc(c, K, 0.6).join(','),
+    choroLow: rgb(mixc(c, Wt, 0.2)), grid: 'rgba(255,255,255,0.07)', sub: rgb(mixc(c, Wt, 0.66)),
+    ...(red ? {accent: '#ffc233', choroHigh: '#ffc233', glow: 'rgba(255,194,51,0.25)'} : {})};
+};
 
 export const THEMES = {
   classic: {bg0: '#07131f', bg1: '#0d2236', land: '#1b3148', edge: '#4a6784', text: '#ffffff', sub: '#a9c1d6',
@@ -110,14 +131,14 @@ export const GlobeLayer = ({s, prevS, local, W, H, T, hl, lang, font}) => {
           return (<g key={'gp' + j}>
             <circle cx={x} cy={y} r={8 + pulse * 22} fill="none" stroke={T.accent} strokeWidth={3} opacity={1 - pulse} />
             <circle cx={x} cy={y} r={8} fill={T.accent} stroke={T.bg0} strokeWidth={3} />
-            <text x={x + 16} y={y + 9} fill={T.text} fontSize={30} fontWeight={700} fontFamily={font}
+            <text x={x + 16} y={y + 9} fill={T.text} fontSize={FS(30)} fontWeight={700} fontFamily={font}
               style={{paintOrder: 'stroke'}} stroke={T.bg0} strokeWidth={6}>{pt.name}</text></g>);
         })}
         {features.filter((c) => hl[c.iso]).map((c) => {
           const ll = [c.f.properties.lx, c.f.properties.ly];
           if (!vis(ll)) return null;
           const [x, y] = proj(ll);
-          return <text key={'gl' + c.iso} x={x} y={y} textAnchor="middle" fill={T.text} fontSize={34} fontWeight={800}
+          return <text key={'gl' + c.iso} x={x} y={y} textAnchor="middle" fill={T.text} fontSize={FS(34)} fontWeight={800}
             fontFamily={font} opacity={interpolate(local, [30, 45], [0, 1], clamp)}
             style={{paintOrder: 'stroke'}} stroke={T.bg0} strokeWidth={7}>{lang === 'bn' ? c.bn : c.name}</text>;
         })}
@@ -149,10 +170,10 @@ export const ChoroLegend = ({s, T, W, H, local, fps, lang, font}) => {
     <div style={{position: 'absolute', left: 70, bottom: vertical ? 430 : 170, opacity: a, fontFamily: font,
       background: T.panel, padding: '16px 22px', border: `1px solid ${T.edge}`, minWidth: 380}}>
       <div style={{width: 360, height: 16, background: `linear-gradient(90deg, ${T.choroLow}, ${T.choroHigh})`}} />
-      <div style={{display: 'flex', justifyContent: 'space-between', color: T.text, fontSize: 28, fontWeight: 700, marginTop: 8}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', color: T.text, fontSize: FS(28), fontWeight: 700, marginTop: 8}}>
         <span>{fmtNum(lo, lang)}{unit}</span><span>{fmtNum(hi, lang)}{unit}</span>
       </div>
-      {s.source ? <div style={{color: T.sub, fontSize: 20, marginTop: 6}}>{s.source}</div> : null}
+      {s.source ? <div style={{color: T.sub, fontSize: FS(20), marginTop: 6}}>{s.source}</div> : null}
     </div>
   );
 };
@@ -182,12 +203,18 @@ export const ChartCard = ({s, local, fps, W, H, T, font, look, lang}) => {
       transform: tf, filter: blur, background: T.panel, border: `1px solid ${T.edge}`,
       padding: vertical ? '30px 28px' : '26px 40px', fontFamily: font, boxSizing: 'border-box', overflow: 'hidden'}}>
       <div style={{position: 'absolute', left: 0, top: 0, height: 4, width: `${accentW * 100}%`, background: T.accent}} />
-      {look === 'hud' ? <div style={{fontFamily: MONO, fontSize: 20, letterSpacing: 3, color: T.sub, marginBottom: 10, opacity: titleIn}}>
+      {look === 'hud' ? <div style={{fontFamily: MONO, fontSize: FS(20), letterSpacing: 3, color: T.sub, marginBottom: 10, opacity: titleIn}}>
         <span style={{color: T.accent}}>■ </span>DATA // {lang === 'bn' ? 'তথ্য' : 'CHART'} // {String(ch.kind || '').toUpperCase()}</div> : null}
-      <div style={{color: T.text, fontSize: vertical ? 58 : 52, fontWeight: 800, lineHeight: 1.25, marginBottom: 12,
+      <div style={{color: T.text, fontSize: FS(vertical ? 58 : 52), fontWeight: 800, lineHeight: 1.25, marginBottom: 12,
         opacity: titleIn, transform: `translateX(${(1 - titleIn) * 30}px)`}}>{ch.title || s.headline}</div>
-      <Img src={staticFile(src)} style={{display: 'block', width: '100%', height: vertical ? H * 0.5 : H * 0.6, objectFit: 'contain'}} />
-      {ch.source ? <div style={{color: T.sub, fontSize: 22, marginTop: 8, opacity: interpolate(local, [50, 70], [0, 1], clamp)}}>
+      <div style={{position: 'relative', overflow: 'hidden'}}>
+        <Img src={staticFile(src)} style={{display: 'block', width: '100%', height: vertical ? H * 0.55 : H * 0.64, objectFit: 'contain',
+          transform: `scale(${1 + Math.min(0.07, Math.max(0, local - 10 - n) * 0.0005)})`, transformOrigin: '50% 60%'}} />
+        {local - 10 - n > 0 && ((local - 10 - n) % 150) < 45 ? <div style={{position: 'absolute', top: 0, bottom: 0, width: '16%',
+          left: `${-20 + (((local - 10 - n) % 150) / 45) * 140}%`, transform: 'skewX(-14deg)',
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent)'}} /> : null}
+      </div>
+      {ch.source ? <div style={{color: T.sub, fontSize: FS(22), marginTop: 8, opacity: interpolate(local, [50, 70], [0, 1], clamp)}}>
         {(lang === 'bn' ? 'সূত্র: ' : 'Source: ') + ch.source}</div> : null}
     </div>
   );
@@ -219,10 +246,10 @@ export const BrollLayer = ({s, local, frames, T, look, W, H}) => {
   const z = interpolate(local, [0, frames], [1.05, 1.16]);
   return (
     <AbsoluteFill style={{opacity: interpolate(local, [0, 8], [0, 1], clamp), background: '#000'}}>
-      <OffthreadVideo src={staticFile(s.broll_file)} muted style={{width: '100%', height: '100%', objectFit: 'cover',
+      <OffthreadVideo src={staticFile(s.broll_file)} startFrom={Math.round((s.broll_offset || 0) * 30)} muted style={{width: '100%', height: '100%', objectFit: 'cover',
         transform: `scale(${z})`, filter: look === 'hud' ? 'contrast(1.08) saturate(0.72)' : 'saturate(0.95)'}} />
       <AbsoluteFill style={{background: 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.6) 100%)'}} />
-      {look === 'hud' ? <div style={{position: 'absolute', right: 60, bottom: H > W ? 420 : 150, fontFamily: MONO, fontSize: 20,
+      {look === 'hud' ? <div style={{position: 'absolute', right: 60, bottom: H > W ? 420 : 150, fontFamily: MONO, fontSize: FS(20),
         letterSpacing: 3, color: '#fff', background: 'rgba(0,0,0,0.55)', padding: '6px 12px', border: '1px solid rgba(255,255,255,0.25)'}}>
         <span style={{color: T.accent}}>● </span>FOOTAGE // LIVE FEED</div> : null}
     </AbsoluteFill>
@@ -230,12 +257,12 @@ export const BrollLayer = ({s, local, frames, T, look, W, H}) => {
 };
 
 // ---- HUD frame: grid, border and corner labels ----
-export const HudOverlay = ({W, H, T, channel, cur, frame, fps, year}) => {
+export const HudOverlay = ({W, H, T, channel, cur, frame, fps, year, dataNote}) => {
   const [lon, lat] = focusCenter(cur.s);
   const t = frame / fps;
   const mm = `${String(Math.floor(t / 60)).padStart(2, '0')}.${String(Math.floor(t % 60)).padStart(2, '0')}`;
   const isBroll = cur.s.type === 'broll';
-  const lab = {position: 'absolute', fontFamily: MONO, fontSize: 18, letterSpacing: 3, textTransform: 'uppercase',
+  const lab = {position: 'absolute', fontFamily: MONO, fontSize: FS(18), letterSpacing: 3, textTransform: 'uppercase',
     color: isBroll ? '#ffffff' : T.sub};
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
@@ -245,7 +272,7 @@ export const HudOverlay = ({W, H, T, channel, cur, frame, fps, year}) => {
       <div style={{...lab, top: 42, left: 50}}><span style={{color: T.accent}}>● </span>{channel} // {(cur.s.type || 'map').toUpperCase()}</div>
       <div style={{...lab, top: 42, right: 50}}>SCENE {String(cur.i + 1).padStart(2, '0')} / {mm}</div>
       <div style={{...lab, bottom: 40, left: 50}}>{Math.abs(lat).toFixed(2)}°{lat >= 0 ? 'N' : 'S'} {Math.abs(lon).toFixed(2)}°{lon >= 0 ? 'E' : 'W'}</div>
-      <div style={{...lab, bottom: 40, right: 50}}>REPORT // {year}</div>
+      <div style={{...lab, bottom: 40, right: 50, textTransform: 'none'}}>{dataNote ? dataNote : `REPORT // ${year}`}</div>
     </AbsoluteFill>
   );
 };
@@ -325,6 +352,10 @@ export const SpreadWorld = ({s, adm, local, frames, T}) => {
   const pulse = ef.pulse ? 0.85 + 0.15 * Math.sin(local / 4) : 1;
   const uid = 'sp' + (s.adm || '').replace(/\W/g, '');
   const spread = (s.mode || 'regions') === 'spread' && st.o;
+  const heat = s.mode === 'heat' && s.heat;
+  const hv = heat ? Object.values(s.heat) : [];
+  const hlo = heat ? Math.min(...hv) : 0, hhi = heat ? Math.max(...hv) : 1;
+  const heatCol = (v) => interpolateColors(hhi === hlo ? 1 : (v - hlo) / (hhi - hlo), [0, 1], [T.choroLow, color]);
   const clipFeats = st.aff.length ? st.aff.map((n) => st.by[n]) : feats;
   return (
     <g>
@@ -336,7 +367,12 @@ export const SpreadWorld = ({s, adm, local, frames, T}) => {
           <feDisplacementMap in="SourceGraphic" scale={unit * 7} />
         </filter>
       </defs>
-      {spread ? (
+      {heat ? st.aff.map((n) => {
+        const f = st.by[n];
+        const p = interpolate(local, [st.act[n], st.act[n] + 14], [0, 1], {...clamp, easing: ease});
+        if (p <= 0 || s.heat[n] === undefined) return null;
+        return <path key={'h' + n} d={admPath(f.geometry)} fill={heatCol(s.heat[n])} fillOpacity={0.92 * p} />;
+      }) : spread ? (
         <g clipPath={`url(#${uid}c)`}>
           <circle cx={st.o[0]} cy={st.o[1]} r={st.R} fill={color} fillOpacity={0.62 * pulse} filter={`url(#${uid}f)`} />
           {ef.pat !== 'none' && <circle cx={st.o[0]} cy={st.o[1]} r={st.R} fill={`url(#${uid}p)`} filter={`url(#${uid}f)`} />}
@@ -398,16 +434,18 @@ export const SpreadHud = ({s, adm, local, frames, fps, toScreen, W, H, T, font, 
       </svg>
       {labelsOn.map((n) => { const f = st.by[n]; const [x, y] = toScreen(WORLDPROJ(f.c));
         const o = interpolate(local, [st.act[n] + 4, st.act[n] + 16], [0, 1], clamp);
-        const txt = (s.labels && s.labels[n]) || (lang === 'bn' ? f.bn || f.name : f.name);
+        const nm = (s.labels && s.labels[n]) || (lang === 'bn' ? f.bn || f.name : f.name);
+        const txt = s.mode === 'heat' && s.heat && s.heat[n] !== undefined ? `${nm} ${bnDigits(s.heat[n], lang)}` : nm;
         return <div key={'l' + n} style={{position: 'absolute', left: x, top: y, transform: 'translate(-50%,-50%)', opacity: o,
-          color: '#fff', fontFamily: font, fontSize: 26, fontWeight: 800, whiteSpace: 'nowrap',
+          color: '#fff', fontFamily: font, fontSize: FS(26), fontWeight: 800, whiteSpace: 'nowrap',
           textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 2px #000'}}>{txt}</div>; })}
       <div style={{position: 'absolute', left: 70, bottom: vertical ? 430 : 170, opacity: leg, transform: `translateX(${(1 - leg) * -40}px)`,
         background: T.panel, border: `1px solid ${T.edge}`, padding: '14px 20px', fontFamily: font, display: 'flex', gap: 16, alignItems: 'center'}}>
-        <div style={{width: 34, height: 34, background: color, opacity: 0.85}} />
+        <div style={{width: s.mode === 'heat' ? 120 : 34, height: 34, opacity: 0.9,
+          background: s.mode === 'heat' ? `linear-gradient(90deg, ${T.choroLow}, ${color})` : color}} />
         <div>
-          <div style={{color: T.text, fontSize: 28, fontWeight: 800}}>{s.legend || (lang === 'bn' ? ef.bn : ef.en)}</div>
-          {Object.keys(st.act).length > 0 && <div style={{color: T.sub, fontSize: 24, marginTop: 2}}>
+          <div style={{color: T.text, fontSize: FS(28), fontWeight: 800}}>{s.legend || (lang === 'bn' ? ef.bn : ef.en)}</div>
+          {Object.keys(st.act).length > 0 && <div style={{color: T.sub, fontSize: FS(24), marginTop: 2}}>
             {bnDigits(reached.length, lang)} {unitName}</div>}
         </div>
       </div>

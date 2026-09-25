@@ -108,8 +108,8 @@ a{color:var(--acc)}
       <div style="flex:2"><label>Audio file (mp3, wav, m4a...)</label><input type="file" id="ownFile" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.aac"></div>
       <div style="flex:2"><label>Video title</label><input id="ownTitle" placeholder="রোহিঙ্গা সংকট"></div>
     </div>
-    <label>The exact script you recorded. Leave an empty line between scenes (each paragraph becomes one scene).</label>
-    <textarea id="ownScript" rows="8" placeholder="প্রথম দৃশ্যের কথা...
+    <label>The script you recorded (ElevenLabs, Google AI Studio or your own voice). Two ways work: plain paragraphs, or your full production script with <b>অংশ ১: ...</b>, <b>ন্যারেশন:</b> and <b>ভিজ্যুয়াল:</b>. With a production script the narration is cut into 5-10 s beats, your visual directions become the graphics, the channel and data cut-off line are read from the header, and the voiceover-only copy and the data sheet are not spoken. Title is optional then.</label>
+    <textarea id="ownScript" rows="12" placeholder="প্রথম দৃশ্যের কথা...
 
 দ্বিতীয় দৃশ্যের কথা..."></textarea>
     <div class="row" style="margin-top:8px">
@@ -168,6 +168,8 @@ a{color:var(--acc)}
     <div><label>Channel (intro, corner, outro)</label><div style="display:flex;gap:6px"><select id="channel" onchange="syncSel('channel','channel1')"></select>
       <button class="sm" title="Add a channel name" onclick="addChannel()">+</button><button class="sm" title="Remove this channel name" onclick="delChannel()">✕</button></div></div>
     <div><label>Look</label><select id="look" onchange="syncSel('look','look1')"><option value="classic">Classic (navy)</option><option value="hud">HUD (dark, grid, red)</option><option value="light">Light editorial</option></select></div>
+    <div><label>Background colour</label><select id="bg"><option value="navy">Navy blue</option><option value="blue">Blue</option><option value="red">Deep red</option><option value="maroon">Maroon</option><option value="teal">Teal</option><option value="green">Green</option><option value="purple">Purple</option><option value="brown">Brown</option><option value="charcoal">Charcoal (near black)</option></select></div>
+    <div><label>Text size</label><select id="textScale"><option value="1">Normal</option><option value="1.15">Large</option><option value="1.25">Larger</option><option value="1.4">Very large</option></select></div>
     <div><label>Background music</label><select id="music" onchange="syncSel('music','music1')"></select></div>
     <div style="min-width:230px"><label>Music volume <b id="musicVolLbl">10%</b></label>
       <div style="display:flex;gap:6px;align-items:center"><input id="musicVol" type="range" min="0" max="60" value="10" style="flex:1" oninput="volChanged('musicVol')">
@@ -255,6 +257,7 @@ async function init() {
   ['look', 'look1'].forEach((id) => { $(id).value = S.look || 'classic'; });
   ['brollRegion', 'brollRegion1'].forEach((id) => { $(id).value = S.broll_region || 'auto'; });
   $('brollStrict').checked = S.broll_strict !== false;
+  $('bg').value = S.bg || 'navy'; $('textScale').value = String(S.text_scale || 1.25);
   api('/api/fonts').then((fs) => {
     const fav = fs.filter((f) => /hind|kalpurush|madanmohan|purno/i.test(f));
     const rest = fs.filter((f) => !fav.includes(f));
@@ -555,7 +558,7 @@ async function delChannel() {
   S.channels = (S.channels || []).filter((c) => c !== n); S.channel = S.channels[0] || '';
   await api('/api/settings', {channels: S.channels, channel: S.channel}); fillChannels();
 }
-const renderOpts = (aspect, music) => ({aspect, channel: $('channel').value, look: $('look').value,
+const renderOpts = (aspect, music) => ({aspect, channel: $('channel').value, look: $('look').value, bg: $('bg').value, textScale: +$('textScale').value,
   font_text: $('fontTxt').value, font_caption: $('fontCap').value, music, musicVolume: +$('musicVol').value / 100,
   musicBoost: $('musicBoost').checked ? 1.8 : 1, broll_region: $('brollRegion').value, broll_strict: $('brollStrict').checked,
   captions: $('captions').checked, sfx: $('sfx').checked, auto_sfx: $('autosfx').checked, sfx_level: +$('sfxLevel').value, intro: $('intro').checked, outro: $('outro').checked});

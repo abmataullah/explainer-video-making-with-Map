@@ -87,6 +87,21 @@ def local_library(root, region):
     return [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.lower().endswith(VIDEO_EXT)]
 
 
+OFF_TOPIC = {"rohingya", "refugee", "refugees", "camp", "fire", "burning", "wedding", "festival", "protest", "protesters",
+             "flood", "flooded", "funeral", "war", "army", "police", "cricket", "concert", "party", "puja", "eid"}
+GENERIC = {"people", "person", "street", "city", "crowd", "life", "daily", "local", "view", "scene", "urban", "town"}
+
+
+def _slug_words(r):
+    t = ((r.get("url") or "").rstrip("/").split("/")[-1] + " " + (r.get("tags") or "")).lower()
+    return set(re.findall(r"[a-z]+", t))
+
+
+def _subject_hits(r, subj):
+    sw = _slug_words(r)
+    return sum(1 for w in subj if w in sw or w.rstrip("s") in sw or (w + "s") in sw)
+
+
 def find_broll(query, region, *, root, stock, pexels_key="", pixabay_key="", used=None, need=6.0,
                orientation="landscape", strict=True, log=print, cache_dir=None):
     """Returns (path_or_url, source_label, is_remote) or None."""
@@ -108,6 +123,10 @@ def find_broll(query, region, *, root, stock, pexels_key="", pixabay_key="", use
         qs += [f"{R['prefix'][0]} {max(words, key=len)}"] if R["prefix"] else []
     qs += [base] + ([R["prefix"][0]] if R["prefix"] else [])
     qs = list(dict.fromkeys(q.strip() for q in qs if q.strip()))
+    place = re.compile(r"(?<![a-z])(?:" + (R.get("rx") or "$^") + r")[a-z]{0,4}(?![a-z])")
+    subj = [w for w in words if not place.search(w) and w not in GENERIC]
+    subj_required = bool(subj)
+    fallback = None
     for q in qs:
         for prov, key in (("pexels", pexels_key), ("pixabay", pixabay_key)):
             if not key:
@@ -119,13 +138,23 @@ def find_broll(query, region, *, root, stock, pexels_key="", pixabay_key="", use
                 log(f"  {prov} search failed for '{q}': {str(e)[:80]}")
                 continue
             good = [r for r in res if verified(r, region)] if (strict and region != "global") else res
+            # drop clips about a different story (a refugee camp fire is not a dengue ward)
+            good = [r for r in good if not ((_slug_words(r) & OFF_TOPIC) - set(words))]
             if not good:
                 continue
-            long_ = [r for r in good if (r.get("dur") or 0) >= need]
-            r = (long_ or sorted(good, key=lambda r: -(r.get("dur") or 0)))[0]
+            ranked = sorted(good, key=lambda r: (-_subject_hits(r, subj), -((r.get("dur") or 0) >= need), -(r.get("dur") or 0)))
+            r = ranked[0]
+            if subj and _subject_hits(r, subj) == 0:
+                fallback = fallback or (prov, r)
+                continue
             used.add(f"{prov}_{r['id']}")
             slug = (r.get("url") or "").rstrip("/").split("/")[-1][:60]
             return (prov, r), f"{prov} '{slug}'", True
+    if fallback and not subj_required:
+        prov, r = fallback
+        used.add(f"{prov}_{r['id']}")
+        slug = (r.get("url") or "").rstrip("/").split("/")[-1][:60]
+        return (prov, r), f"{prov} '{slug}' (place matches, subject loosely)", True
     # 3. any unused own clip for the region
     if lib:
         p = random.Random(query).choice(lib)

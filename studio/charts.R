@@ -36,18 +36,21 @@ TH <- switch(look,
   list(txt = "#ffffff", sub = "#a9c1d6", grid = "#ffffff1f", acc = "#ffd166",
        pal = c("#ffd166", "#4895ef", "#e63946", "#2a9d8f", "#9d4edd", "#f4a261", "#52b788", "#ef476f")))
 
+if (!is.null(sp$accent)) { TH$acc <- sp$accent; TH$pal[1] <- sp$accent }
 df <- as.data.frame(sp$data, stringsAsFactors = FALSE)
 df$label <- d2b(as.character(df$label))
 df$value <- as.numeric(df$value)
 df <- df[!is.na(df$value), , drop = FALSE]
 if (is.null(df$group)) df$group <- "a"
 df$group <- as.character(df$group)
+if (is.null(df$partial)) df$partial <- FALSE
+df$partial <- !is.na(df$partial) & as.logical(df$partial)
 df$label <- factor(df$label, levels = unique(df$label))
 multi <- length(unique(df$group)) > 1
 n <- nrow(df)
 
 W <- sp$w %||% 1600; H <- sp$h %||% 820
-base <- max(18, round(W / 44))
+base <- max(18, round(W / 44 * (sp$scale %||% 1)))
 tsize <- base / .pt * 1.05
 NF <- sp$frames %||% 66          # frames of build-up (2.2 s)
 
@@ -79,9 +82,9 @@ frame_plot <- function(t) {
     # biggest first: ranking reveals from the top
     d$p <- sapply(seq_len(k), function(i) stag(t, k - i + 1, k))
     d$v <- d$value * d$p
-    d$lab <- ifelse(d$p > 0.03, fmt(d$v), "")
+    d$lab <- ifelse(d$p > 0.03, paste0(fmt(d$v), ifelse(d$partial, "*", "")), "")
     g <- ggplot(d, aes(label, v))
-    g <- if (kind == "hbar") g + geom_col(fill = TH$acc, width = 0.62, alpha = pmin(1, d$p * 3)) else
+    g <- if (kind == "hbar") g + geom_col(fill = TH$acc, width = 0.62, alpha = pmin(1, d$p * 3) * ifelse(d$partial, 0.45, 1)) else
       g + geom_segment(aes(xend = label, y = 0, yend = v), colour = TH$sub, linewidth = 1.4) +
           geom_point(colour = TH$acc, size = base / 2.2 * pmin(1, d$p * 2))
     return(g + geom_text(aes(label = lab), hjust = -0.2, family = fam, fontface = "bold", colour = TH$txt, size = tsize) +
@@ -100,7 +103,7 @@ frame_plot <- function(t) {
         if (nrow(a) && nrow(b)) {
           f <- pos - floor(pos)
           full <- rbind(full, data.frame(label = b$label, value = a$value + (b$value - a$value) * f, group = a$group,
-                                         xi = a$xi + f, stringsAsFactors = FALSE)[, names(full)])
+                                         xi = a$xi + f, partial = b$partial, stringsAsFactors = FALSE)[, names(full)])
         }
       }
       full
@@ -135,7 +138,7 @@ frame_plot <- function(t) {
     d$v <- pmax(0, pmin(d$value, sweep - cs))
     d$pct <- d$value / tot
     d$lab <- ifelse(d$v >= d$value * 0.999 & d$pct > 0.05, paste0(d2b(format(round(d$pct * 100), trim = TRUE)), "%"), "")
-    d <- rbind(d, data.frame(label = "__rest", value = 0, group = "a", v = tot - sum(d$v), pct = 0, lab = "")[, names(d)])
+    d <- rbind(d, data.frame(label = "__rest", value = 0, group = "a", v = tot - sum(d$v), pct = 0, lab = "", partial = FALSE)[, names(d)])
     d$label <- factor(d$label, levels = c(levels(df$label), "__rest"))
     cols <- c(setNames(rep(TH$pal, 5)[seq_len(n)], levels(df$label)), "__rest" = "transparent")
     g <- ggplot(d, aes(x = 2, y = v, fill = label)) + geom_col(colour = NA, width = 1) +
@@ -175,9 +178,12 @@ frame_plot <- function(t) {
   # bar (default): bars rise one after another, numbers count up; grouped when several series
   k <- n
   d <- df; d$p <- sapply(seq_len(k), function(i) stag(t, i, k)); d$v <- d$value * d$p
-  d$lab <- ifelse(d$p > 0.03, fmt(d$v), "")
+  d$lab <- ifelse(d$p > 0.03, paste0(fmt(d$v), ifelse(d$partial, "*", "")), "")
+  d$al <- ifelse(d$partial, 0.42, 1)
   ggplot(d, aes(label, v, fill = if (multi) group else "x")) +
-    geom_col(width = if (multi) 0.72 else 0.6, position = position_dodge(width = 0.76)) +
+    geom_col(aes(alpha = al), width = if (multi) 0.72 else 0.6, position = position_dodge(width = 0.76),
+             colour = ifelse(d$partial, TH$acc, NA), linetype = ifelse(d$partial, "22", "solid"), linewidth = 1.1) +
+    scale_alpha_identity() +
     geom_text(aes(label = lab), position = position_dodge(width = 0.76), vjust = -0.45, family = fam, fontface = "bold",
               colour = TH$txt, size = tsize * (if (multi) 0.8 else 1)) +
     (if (multi) fillv else scale_fill_manual(values = TH$acc)) +

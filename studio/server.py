@@ -1,3 +1,4 @@
+import subprocess
 """Geo Explainer Studio - local web app.
 
 topic -> Gemini script (scene JSON) -> edit -> Gemini TTS per scene -> Remotion render.
@@ -38,6 +39,10 @@ DEFAULTS = {
     "broll_region": "auto",
     "broll_strict": True,
     "recent_music": [],
+    "local_model": "gemma4:latest",
+    "bg": "navy",
+    "text_scale": 1.25,
+    "music_library": r"E:\Organized\Audio\royality free music",
     "music_volume": 0.1,
     "output_dir": "",
 }
@@ -313,6 +318,8 @@ def normalize_scene(sc):
                 continue
             if r.get("group"):
                 item["group"] = str(r["group"])
+            if r.get("partial") in (True, "true", 1, "1", "yes"):
+                item["partial"] = True
             data.append(item)
         ch["data"] = data[:16]
         if ch.get("kind") not in CHART_KINDS:
@@ -714,11 +721,93 @@ MOOD_TRACK = {"humanitarian": "Heartbreaking.mp3", "war": "Impact Lento.mp3", "s
 DEFAULT_TRACK = "Hidden Agenda.mp3"
 
 
+USER_MOODS = [(r"tension|suspense|thriller|countdown|dark|battle|epic|war|drum|chase|action", "tension"),
+              (r"sad|sorrow|emotional|piano|grief|global.?warming", "sombre"),
+              (r"cosmic|drift|ambient|space|mystery|mysterious", "mystery"),
+              (r"hope|inspir|uplift|bright|happy", "hopeful")]
+
+
+def sync_user_music(job=None):
+    """Bring the producer's own licensed library (Settings > music_library) into the music list.
+    MP3 is copied, WAV-only tracks are turned into 320k MP3, zips are opened into music/_lib. Their own
+    tracks carry no credit line. Returns {file: mood}."""
+    import zipfile
+    lib = (load_settings().get("music_library") or "").strip()
+    if not lib or not os.path.isdir(lib):
+        return {}
+    cr = music_credits()
+    unz = os.path.join(MUSIC, "_lib")
+    audio = (".mp3", ".wav", ".m4a", ".aiff", ".flac")
+    for root, dirs, files in os.walk(lib):
+        dirs[:] = [d for d in dirs if d != "__MACOSX"]
+        for f in files:
+            if f.lower().endswith(".zip"):
+                dst = os.path.join(unz, os.path.splitext(f)[0])
+                if os.path.isdir(dst):
+                    continue
+                try:
+                    with zipfile.ZipFile(os.path.join(root, f)) as z:
+                        names = [n for n in z.namelist() if n.lower().endswith(audio) and "__MACOSX" not in n
+                                 and not os.path.basename(n).startswith("._")]
+                        if names and not any(os.path.splitext(os.path.basename(n))[0] + ".mp3" in os.listdir(MUSIC) for n in names):
+                            os.makedirs(dst, exist_ok=True)
+                            for n in names:
+                                open(os.path.join(dst, os.path.basename(n)), "wb").write(z.read(n))
+                        else:
+                            os.makedirs(dst, exist_ok=True)
+                except Exception:
+                    pass
+    found = {}
+    for base in (lib, unz):
+        for root, dirs, files in os.walk(base):
+            dirs[:] = [d for d in dirs if d != "__MACOSX"]
+            for f in files:
+                stem, ext = os.path.splitext(f)
+                if f.startswith("._") or ext.lower() not in audio:
+                    continue
+                if ext.lower() == ".mp3" or stem not in found:
+                    found[stem] = os.path.join(root, f)
+    ff = shutil.which("ffmpeg")
+    out, changed = {}, False
+    for stem, src in found.items():
+        fn = stem + ".mp3"
+        dst = os.path.join(MUSIC, fn)
+        if not os.path.exists(dst):
+            try:
+                if src.lower().endswith(".mp3"):
+                    shutil.copyfile(src, dst)
+                elif ff:
+                    subprocess.run([ff, "-y", "-loglevel", "error", "-i", src, "-b:a", "320k", dst], check=True, timeout=300)
+                else:
+                    continue
+                if job is not None:
+                    log(job, f"Added your track: {stem}")
+            except Exception:
+                continue
+        mood = next((m for pat, m in USER_MOODS if re.search(pat, stem, re.I)), "tension")
+        if cr.get(fn, {}).get("mood") != mood or not cr.get(fn, {}).get("user"):
+            cr[fn] = {"user": True, "mood": mood, "title": stem, "from": src}
+            changed = True
+        out[fn] = mood
+    if changed:
+        json.dump(cr, open(os.path.join(MUSIC, "credits.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    return out
+
+
 def pick_music(p, job=None):
-    """Tension-first music: a pool per mood, rotating so consecutive videos do not share a track."""
+    """Tension-first music: the producer's own library first, then a pool per mood, rotating so
+    consecutive videos do not share a track."""
+    try:
+        mine = sync_user_music(job)
+    except Exception:
+        mine = {}
     have = set(os.listdir(MUSIC))
     mood = str(p.get("mood") or "").strip().lower()
-    pool = [t for t in MUSIC_POOLS.get(mood) or MUSIC_POOLS["tension"] if t in have]
+    want = {"war": "tension", "power-games": "tension", "spy": "tension", "trade-strategy": "tension",
+            "humanitarian": "sombre", "history": "sombre", "environment": "tension"}.get(mood, mood or "tension")
+    pool = [t for t, m in sorted(mine.items()) if m == want and t in have and 'short' not in t.lower()]
+    if not pool:
+        pool = [t for t in MUSIC_POOLS.get(mood) or MUSIC_POOLS["tension"] if t in have]
     if not pool:
         pool = [t for t in MUSIC_POOLS["tension"] if t in have] or sorted(f for f in have if f.endswith(".mp3"))
     if not pool:
@@ -822,6 +911,10 @@ def rscript():
     return found[-1] if found else None
 
 
+TEXT_SCALE = {"k": 1.25}
+BG_RED = {"on": False}
+
+
 def render_chart(job, sc, i, look, lang, font, vertical):
     """Draw the chart in R as an animated PNG sequence. Returns (folder, frame count) under public/_render."""
     ch = sc.get("chart") or {}
@@ -834,7 +927,9 @@ def render_chart(job, sc, i, look, lang, font, vertical):
     w, h = (980, 1000) if vertical else (1640, 780)
     spec = {"kind": ch.get("kind", "bar"), "data": ch["data"], "unit": ch.get("unit", ""), "lang": lang,
             "look": look, "font_regular": font["regular"] if font else "", "font_bold": font["bold"] if font else "",
-            "w": w, "h": h, "frames": 66, "v": 2}
+            "w": w, "h": h, "frames": 66, "v": 3, "scale": round(float(TEXT_SCALE.get("k", 1.25)), 2)}
+    if BG_RED.get("on"):
+        spec["accent"] = "#ffc233"
     key = hashlib.md5(json.dumps(spec, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:14]
     cache = os.path.join(ROOT, "cache", "charts")
     os.makedirs(cache, exist_ok=True)
@@ -1102,6 +1197,20 @@ def prepare_spread(job, sc, i):
                   open(dst, "w", encoding="utf-8"), ensure_ascii=False)
     feats = data["features"]
     by = {f["name"]: f for f in feats}
+    heat = {}
+    if sc.get("mode") == "heat" and isinstance(sc.get("heat"), dict):
+        for k, v in sc["heat"].items():
+            key = re.sub(r"\s*(বিভাগ|division|সিটি|city)\s*$", "", str(k), flags=re.I).strip()
+            m = match_region(key, feats)
+            try:
+                val = _num(v)
+            except Exception:
+                continue
+            if m:
+                heat[m] = heat.get(m, 0) + val
+            else:
+                log(job, f"Scene {i + 1}: '{k}' is not a region on the {iso} map, left out of the heat map")
+        sc = dict(sc, regions=sorted(heat, key=lambda n: -heat[n]), order="value")
     regions = sc.get("regions") or []
     if isinstance(regions, str):
         regions = [x for x in re.split(r"[,\n،]+", regions) if x.strip()]
@@ -1142,8 +1251,12 @@ def prepare_spread(job, sc, i):
               max(bb[2], *[p[0] for p in track]), max(bb[3], *[p[1] for p in track])]
     log(job, f"Scene {i + 1}: {sc.get('effect', 'flood')} spreading over {len(aff) or 'the whole'} "
              f"{'area' if not aff else ('districts' if level == 2 else 'regions')} ({mode})")
-    return {"adm": f"_render/{fname}", "affected": aff, "origin_ll": origin, "zoom_bbox": bb, "mode": mode,
-            "level": level, "track": track}, f"Boundaries: geoBoundaries ({data.get('source', '')}), {data.get('license', '')}"
+    extra = {"adm": f"_render/{fname}", "affected": aff, "origin_ll": origin, "zoom_bbox": bb, "mode": mode,
+             "level": level, "track": track}
+    if heat:
+        extra["heat"] = heat
+        extra["mode"] = "heat"
+    return extra, f"Boundaries: geoBoundaries ({data.get('source', '')}), {data.get('license', '')}"
 
 # ============================================================ sound effects --
 SFX_DIR = os.path.join(ROOT, "public", "sfx", "lib")
@@ -1251,6 +1364,11 @@ def render(job, name, opts):
     f_cap = font_entry(opts.get("font_caption") or s.get("font_caption"))
     if opts.get("musicVolume") is not None:
         s["music_volume"] = float(opts["musicVolume"])
+    bg = opts.get("bg") or s.get("bg") or "navy"
+    tscale = float(opts.get("textScale") or s.get("text_scale") or 1.25)
+    s["bg"], s["text_scale"] = bg, tscale
+    TEXT_SCALE["k"] = tscale
+    BG_RED["on"] = bg in ("red", "maroon") and look != "light"
     if opts.get("broll_region"):
         s["broll_region"] = opts["broll_region"]
     if "broll_strict" in opts:
@@ -1295,6 +1413,7 @@ def render(job, name, opts):
                 log(job, f"Scene {i + 1}: {sc2['chart'].get('kind')} chart drawn in R")
             else:
                 sc2["type"] = "map"
+                sc2.setdefault("highlight", {c: "red" for c in (sc.get("focus") or ["BGD"])})
         if sc.get("type") == "spread":
             try:
                 extra, credit_line = prepare_spread(job, sc, i)
@@ -1313,6 +1432,10 @@ def render(job, name, opts):
             import broll_region as BR
             reg = BR.scene_region(sc, video_region) if region_mode == "auto" else region_mode
             got = fetch_broll(job, sc.get("broll") or "", vertical, used, float(sc.get("duration") or 6), reg, strict)
+            if not got and used:     # nothing new fits: a clip already in this video beats an empty map
+                got = fetch_broll(job, sc.get("broll") or "", vertical, set(), float(sc.get("duration") or 6), reg, strict)
+                if got:
+                    sc2["broll_offset"] = 4
             if got:
                 dst = f"broll{i:02d}.mp4"
                 shutil.copyfile(got[0], os.path.join(PUBLIC_RENDER, dst))
@@ -1320,6 +1443,7 @@ def render(job, name, opts):
                 log(job, f"Scene {i + 1}: B-roll [{BR.REGIONS[reg]['name']}] {got[1]}")
             else:
                 sc2["type"] = "map"
+                sc2.setdefault("highlight", {c: "red" for c in (sc.get("focus") or ["BGD"])})
                 log(job, f"Scene {i + 1}: no verified {BR.REGIONS[reg]['name']} footage for '{sc.get('broll', '')}'"
                          + ("" if pexels_key() else " (add a Pexels key in Settings)") + ", showing the map instead")
         scenes.append(sc2)
@@ -1333,7 +1457,7 @@ def render(job, name, opts):
             shutil.copyfile(mp, os.path.join(PUBLIC_RENDER, "music" + ext))
             music = "_render/music" + ext
     props = {"scenes": scenes, "lang": lang, "channel": opts.get("channel", s.get("channel", "")),
-             "font": s["font"], "look": look, "fontFiles": font_files, "title": p.get("title", ""),
+             "font": s["font"], "look": look, "fontFiles": font_files, "title": p.get("title", ""), "dataNote": p.get("data_note", ""), "bg": bg, "textScale": tscale,
              "credits_extra": sorted(adm_credits) + (["Sound effects: Mixkit (mixkit.co) and BigSoundBank.com"] if used_sfx else []),
              "fontText": f_text["family"] if f_text else "Hind Siliguri",
              "fontCaption": f_cap["family"] if f_cap else "Hind Siliguri", "captions": bool(opts.get("captions", True)), "music": music,
@@ -1521,7 +1645,15 @@ def parse_script(text, min_chars=100, max_chars=260):
             fixed[-1]["text"] += " " + p_["text"]
         else:
             fixed.append(p_)
-    return fixed
+    # a paragraph that runs past ~20 s gets cut into sentence groups, so one picture never sits for 40 s
+    import production as PR
+    final = []
+    for p_ in fixed:
+        if len(p_["text"]) > max_chars + 60:
+            final += [{"text": b, "section": p_["section"]} for b in PR.beats(p_["text"], 90, max_chars - 40)]
+        else:
+            final.append(p_)
+    return final
 
 
 def split_script(text):
@@ -1945,6 +2077,76 @@ def gemini_visuals(job, texts, lang, sections=None):
     raise RuntimeError(f"Gemini unavailable: {last}")
 
 
+def gemini_array(job, prompt, n, what="the visuals"):
+    s = load_settings()
+    from google.genai import types
+    c = client()
+    cfg = types.GenerateContentConfig(response_mime_type="application/json")
+    last = None
+    for wait in (0, 20):
+        if wait:
+            log(job, f"Gemini busy, waiting {wait} s...")
+            time.sleep(wait)
+        for model in model_list(s["script_model"], s["script_fallback"], EXTRA_SCRIPT):
+            try:
+                log(job, f"Planning {what} with {model}...")
+                r = c.models.generate_content(model=model, contents=prompt, config=cfg)
+                t = r.text.strip()
+                t = t[t.find("["): t.rfind("]") + 1]
+                try:
+                    arr = json.loads(t)
+                except ValueError:       # small models leave trailing commas or comments
+                    t2 = re.sub(r",\s*([}\]])", r"\1", re.sub(r"//[^\n\"]*\n", "\n", t))
+                    arr = json.loads(t2)
+                if isinstance(arr, list) and len(arr) == n:
+                    return arr
+                log(job, f"{model} returned {len(arr)} items instead of {n}, trying again")
+            except Exception as e:
+                last = e
+                log(job, f"{model} failed: {str(e).split('.')[0][:100]}")
+    arr = ollama_array(job, prompt, n, what)
+    if arr is not None:
+        return arr
+    raise RuntimeError(f"Gemini unavailable: {last}")
+
+
+def parse_json_array(t):
+    t = t[t.find("["): t.rfind("]") + 1]
+    try:
+        return json.loads(t)
+    except ValueError:
+        return json.loads(re.sub(r",\s*([}\]])", r"\1", t))
+
+
+def ollama_array(job, prompt, n, what):
+    """Local planner (Ollama on this PC). Settings: local_model (default gemma4:latest)."""
+    import urllib.request
+    want = (load_settings().get("local_model") or "gemma4:latest").strip()
+    try:
+        tags = json.load(urllib.request.urlopen("http://127.0.0.1:11434/api/tags", timeout=4))
+        names = [m["name"] for m in tags.get("models", [])]
+    except Exception:
+        log(job, "Ollama is not running on this PC, no local planner.")
+        return None
+    order = [m for m in [want, "gemma4:latest", "qwen3.6:latest"] if m in names]
+    for model in dict.fromkeys(order):
+        try:
+            log(job, f"Gemini is out of quota. Planning {what} on this PC with {model} (a minute or two)...")
+            body = json.dumps({"model": model, "prompt": prompt + "\n\nReply with the JSON array only.", "stream": False,
+                               "options": {"num_ctx": 16384, "temperature": 0.3}}).encode()
+            r = urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:11434/api/generate", body,
+                                       {"Content-Type": "application/json"}), timeout=900)
+            txt = json.load(r).get("response", "")
+            txt = re.sub(r"<think>.*?</think>", "", txt, flags=re.S)
+            arr = parse_json_array(txt)
+            if isinstance(arr, list) and len(arr) == n:
+                return arr
+            log(job, f"{model} returned {len(arr) if isinstance(arr, list) else 0} items instead of {n}")
+        except Exception as e:
+            log(job, f"{model} failed: {str(e)[:100]}")
+    return None
+
+
 def build_from_audio(job, req):
     import numpy as np
     name = safe_name(req.get("name") or req.get("title") or "my_audio")
@@ -1953,9 +2155,27 @@ def build_from_audio(job, req):
     src = req["audio_path"]
     lang = req.get("lang", "bn")
     title = req.get("title", "").strip()
-    parsed = parse_script(req.get("script", ""))
-    texts = [p_["text"] for p_ in parsed]
-    sections = [p_["section"] for p_ in parsed]
+    raw = req.get("script", "")
+    try:
+        open(os.path.join(d, "upload", "script.txt"), "w", encoding="utf-8").write(raw)
+    except Exception:
+        pass
+    import production as PR
+    prod = PR.parse_production(raw) if PR.is_production(raw) else None
+    if prod and prod["sections"]:
+        items = PR.beat_list(prod)
+        texts = [it["text"] for it in items]
+        sections = [it["section"] for it in items]
+        title = title or prod["title"]
+        log(job, f"Production script: {len(prod['sections'])} sections, cut into {len(texts)} beats of one or two "
+                 f"sentences. Channel: {prod['channel'] or '-'}. Data note: {prod['cutoff'] or '-'}.")
+        if prod["channel"] and isinstance(req.get("render"), dict):
+            req["render"]["channel"] = prod["channel"]
+    else:
+        prod = None
+        parsed = parse_script(raw)
+        texts = [p_["text"] for p_ in parsed]
+        sections = [p_["section"] for p_ in parsed]
     if not texts or not any(texts):
         raise RuntimeError("Paste the script you recorded, so captions and maps can follow it.")
     log(job, f"Script: {len(texts)} scenes. Section markers like [India — 0:20] are treated as headings, not speech; "
@@ -1972,13 +2192,30 @@ def build_from_audio(job, req):
     job["progress"] = 15
 
     scenes = None
-    if req.get("design", "gemini") == "gemini":
+    if prod:
+        try:
+            if req.get("design", "gemini") != "gemini":
+                raise RuntimeError("automatic design chosen")
+            ch = (req.get("render") or {}).get("channel") or prod["channel"]
+            plan = gemini_array(job, PR.plan_prompt(prod, items, ch), len(items), "the visuals from your directions")
+            log(job, "Visual directions turned into scenes by Gemini.")
+        except Exception as e:
+            plan = PR.rule_plan(prod, items)
+            log(job, f"Gemini could not plan the directions ({str(e)[:80]}). Simple plan used: B-roll where you asked "
+                     "for it, maps elsewhere. Charts and cards need Gemini.")
+        scenes = PR.clean_plan(plan, items, prod, lambda m: log(job, m))
+    if scenes is None and req.get("design", "gemini") == "gemini":
         try:
             vis = gemini_visuals(job, texts, lang, sections)
             scenes = []
             for t, v in zip(texts, vis):
                 v = v if isinstance(v, dict) else {}
                 v["narration"] = t          # the producer's words, always
+                if v.get("broll") and v.get("type") != "broll":
+                    if v.get("type") in ("map", None) and not (scenes and scenes[-1].get("type") == "broll"):
+                        v["type"] = "broll"     # footage was asked for: show it, not a map
+                    else:
+                        v.pop("broll", None)
                 scenes.append(v)
             log(job, "Maps designed by Gemini.")
         except Exception as e:
@@ -1992,6 +2229,11 @@ def build_from_audio(job, req):
     p.update({"name": name, "title": title or p.get("title") or name, "lang": lang,
               "topic": title, "scenes": scenes, "sources": [],
               "upload": {"file": os.path.basename(src)}})
+    if prod:
+        p["data_note"] = ("তথ্য: " if lang == "bn" else "Data: ") + prod["cutoff"] if prod["cutoff"] else ""
+        p["channel"] = prod["channel"]
+    else:
+        p.pop("data_note", None)
     p["scenes"] = [normalize_scene(sc) for sc in p["scenes"]]
     words = whisper_words(job, x, lang, os.path.join(d, "upload"), texts) if req.get("whisper", True) else None
     job["progress"] = 55
@@ -2118,6 +2360,10 @@ def get_settings():
     s["has_key"] = bool(s.get("gemini_key")) or os.path.exists(os.path.join(PARENT, "gemini_key.txt"))
     s["gemini_key"] = ("*" * 8 + s["gemini_key"][-4:]) if s.get("gemini_key") else ""
     s["voices"] = VOICES
+    try:
+        sync_user_music()
+    except Exception:
+        pass
     s["music_files"] = sorted(f for f in os.listdir(MUSIC) if f.lower().endswith((".mp3", ".wav", ".m4a")))
     s["music_moods"] = {k: v.get("mood", "") for k, v in music_credits().items() if isinstance(v, dict)}
     s["output_dir_now"] = out_dir()

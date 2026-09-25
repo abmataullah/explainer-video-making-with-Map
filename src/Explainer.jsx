@@ -3,7 +3,8 @@ import {AbsoluteFill, Sequence, Html5Audio, Img, staticFile, useCurrentFrame, us
   interpolate, interpolateColors, spring, Easing} from 'remotion';
 import {features, findCountry, sceneCamera, fitScale, anchor, lonlat, WORLD_CAMERA, projection} from './geo';
 import {buildScenes} from './scenes';
-import {THEMES, useFontFiles, GlobeLayer, choroColors, ChoroLegend, ChartCard, BrollLayer, HudOverlay, countUp, percentOf, SpreadWorld, SpreadHud, useAdm} from './extras';
+import {TilesCard, VersusCard, PyramidCard, BlocksCard, ChecklistCard, LowerThirds, TagFlash, Footnote} from './cards2';
+import {THEMES, TXT, FS, bgTheme, useFontFiles, GlobeLayer, choroColors, ChoroLegend, ChartCard, BrollLayer, HudOverlay, countUp, percentOf, SpreadWorld, SpreadHud, useAdm} from './extras';
 
 const PALETTE = {
   red: '#e63946', amber: '#f4a261', teal: '#2a9d8f', blue: '#4895ef', violet: '#9d4edd',
@@ -18,7 +19,8 @@ const THEME = {
   bg0: '#07131f', bg1: '#0d2236', land: '#1b3148', edge: '#4a6784', text: '#ffffff',
   sub: '#a9c1d6', accent: '#ffd166', panel: 'rgba(6,16,28,0.8)',
 };
-const CARD_TYPES = ['title', 'stat', 'bullets', 'quote', 'timeline', 'compare', 'intro', 'outro', 'chart'];
+const CARD_TYPES = ['title', 'stat', 'bullets', 'quote', 'timeline', 'compare', 'intro', 'outro', 'chart', 'tiles', 'versus', 'pyramid', 'blocks', 'checklist'];
+const OWN_TITLE = ['title', 'intro', 'outro', 'chart', 'tiles', 'versus', 'pyramid', 'blocks', 'checklist'];
 const clamp = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'};
 const ease = Easing.bezier(0.65, 0, 0.35, 1);
 const flagSrc = (c) => (c && c.iso2 ? staticFile(`flags/${c.iso2}.svg`) : null);
@@ -148,7 +150,7 @@ const MapLayer = ({tl, frame, W, H, lang, fps, font, adm = {}}) => {
                 strokeLinecap="round" strokeDasharray={L} strokeDashoffset={L * (1 - p)} />
               {p > 0.97 && <polygon fill={c} transform={`translate(${x2},${y2}) rotate(${ang * 180 / Math.PI})`}
                 points="0,0 -26,-13 -26,13" />}
-              {a.label && p > 0.5 && <text x={qx} y={qy - 14} fill={c} fontSize={30} fontWeight={700}
+              {a.label && p > 0.5 && <text x={qx} y={qy - 14} fill={c} fontSize={FS(30)} fontWeight={700}
                 textAnchor="middle" style={{paintOrder: 'stroke'}} stroke={THEME.bg0} strokeWidth={6}>{a.label}</text>}
             </g>
           );
@@ -163,7 +165,7 @@ const MapLayer = ({tl, frame, W, H, lang, fps, font, adm = {}}) => {
             <g key={'pt' + j} opacity={Math.min(1, pop)}>
               <circle cx={x} cy={y} r={10 + pulse * 30} fill="none" stroke={THEME.accent} strokeWidth={3} opacity={1 - pulse} />
               <circle cx={x} cy={y} r={9 * pop} fill={THEME.accent} stroke={THEME.bg0} strokeWidth={3} />
-              <text x={x + 18} y={y + 10} fill={THEME.text} fontSize={30} fontWeight={700}
+              <text x={x + 18} y={y + 10} fill={THEME.text} fontSize={FS(30)} fontWeight={700}
                 style={{paintOrder: 'stroke'}} stroke={THEME.bg0} strokeWidth={7}>{pt.name}</text>
             </g>
           );
@@ -174,7 +176,7 @@ const MapLayer = ({tl, frame, W, H, lang, fps, font, adm = {}}) => {
       {showLabels && labels.map(({c, x, y, on}) => (
         <div key={'lb' + c.iso + c.name} style={{position: 'absolute', left: x, top: y, transform: 'translate(-50%,-50%)',
           display: 'flex', alignItems: 'center', gap: 10, opacity: on ? Math.max(fade, 0.001) : 1,
-          color: on ? THEME.text : THEME.sub, fontSize: on ? 36 : 22, fontWeight: on ? 800 : 500,
+          color: on ? THEME.text : THEME.sub, fontSize: FS(on ? 36 : 22), fontWeight: on ? 800 : 500,
           textShadow: THEME.shadow, whiteSpace: 'nowrap', letterSpacing: on ? 0.5 : 1}}>
           {on && <Flag c={c} h={30} />}
           {lang === 'bn' ? c.bn : (on ? c.name : c.name.toUpperCase())}
@@ -193,7 +195,7 @@ const Headline = ({text, local, fps, font, W}) => {
     <div style={{position: 'absolute', left: 70, top: 60, display: 'flex', alignItems: 'stretch', opacity: s,
       transform: `translateX(${(1 - s) * -40}px)`, fontFamily: font}}>
       <div style={{width: 10, background: THEME.accent, borderRadius: 3}} />
-      <div style={{background: THEME.panel, color: THEME.text, fontSize: 46, fontWeight: 800, padding: '14px 26px',
+      <div style={{background: THEME.panel, color: THEME.text, fontSize: FS(46), fontWeight: 800, padding: '14px 26px',
         maxWidth: Math.min(1100, W - 200), lineHeight: 1.3}}>{text}</div>
     </div>
   );
@@ -207,7 +209,7 @@ const Caption = ({cues, local, fps, W, H, font}) => {
   const vertical = H > W;
   return (
     <div style={{position: 'absolute', bottom: vertical ? 260 : 70, left: 0, width: W, display: 'flex', justifyContent: 'center'}}>
-      <div style={{background: THEME.capBg, color: THEME.capText, fontSize: vertical ? 48 : 40, fontWeight: 600, padding: '12px 28px',
+      <div style={{background: THEME.capBg, color: THEME.capText, fontSize: FS(vertical ? 48 : 40), fontWeight: 600, padding: '12px 28px',
         borderRadius: hud ? 0 : 10, borderLeft: hud ? `6px solid ${THEME.accent}` : 'none', maxWidth: W * 0.86, textAlign: 'center', lineHeight: 1.45, fontFamily: font}}>{cue.text}</div>
     </div>
   );
@@ -226,7 +228,7 @@ const Card = ({s, local, fps, W, H, font, lang, channel}) => {
     const out = interpolate(local, [s.duration * fps - 12, s.duration * fps], [1, 0], clamp);
     return (
       <div style={{...center, opacity: out}}>
-        <div style={{fontSize: vertical ? 90 : 120, fontWeight: 900, letterSpacing: interpolate(letters, [0, 1], [40, 8]),
+        <div style={{fontSize: FS(vertical ? 90 : 120), fontWeight: 900, letterSpacing: interpolate(letters, [0, 1], [40, 8]),
           opacity: letters, textShadow: '0 8px 40px rgba(0,0,0,.8)'}}>{channel}</div>
         <div style={{width: 420 * line, height: 8, background: THEME.accent, borderRadius: 4, marginTop: 24}} />
       </div>
@@ -236,9 +238,9 @@ const Card = ({s, local, fps, W, H, font, lang, channel}) => {
     const b = spring({frame: local - 18, fps, config: {damping: 14}});
     return (
       <div style={center}>
-        <div style={{fontSize: vertical ? 64 : 76, fontWeight: 900}}>{lang === 'bn' ? 'দেখার জন্য ধন্যবাদ' : 'Thanks for watching'}</div>
-        <div style={{fontSize: 44, color: THEME.sub, marginTop: 18}}>{channel}</div>
-        <div style={{marginTop: 50, background: '#e62117', color: '#fff', fontSize: 40, fontWeight: 800,
+        <div style={{fontSize: FS(vertical ? 64 : 76), fontWeight: 900}}>{lang === 'bn' ? 'দেখার জন্য ধন্যবাদ' : 'Thanks for watching'}</div>
+        <div style={{fontSize: FS(44), color: THEME.sub, marginTop: 18}}>{channel}</div>
+        <div style={{marginTop: 50, background: '#e62117', color: '#fff', fontSize: FS(40), fontWeight: 800,
           padding: '18px 46px', borderRadius: 12, transform: `scale(${b})`}}>
           {lang === 'bn' ? 'সাবস্ক্রাইব করুন' : 'SUBSCRIBE'}</div>
       </div>
@@ -246,16 +248,16 @@ const Card = ({s, local, fps, W, H, font, lang, channel}) => {
   }
   if (s.type === 'title') return (
     <div style={{...center, transform: `scale(${0.94 + a * 0.06})`}}>
-      <div style={{fontSize: vertical ? 80 : 96, fontWeight: 900, maxWidth: W * 0.85, lineHeight: 1.25, textShadow: '0 6px 30px rgba(0,0,0,.7)'}}>{s.title || s.headline}</div>
+      <div style={{fontSize: FS(vertical ? 80 : 96), fontWeight: 900, maxWidth: W * 0.85, lineHeight: 1.25, textShadow: '0 6px 30px rgba(0,0,0,.7)'}}>{s.title || s.headline}</div>
       <div style={{width: 160 * a, height: 8, background: THEME.accent, margin: '30px 0', borderRadius: 4}} />
-      {s.subtitle && <div style={{fontSize: 44, color: THEME.sub, maxWidth: W * 0.75, lineHeight: 1.4}}>{s.subtitle}</div>}
+      {s.subtitle && <div style={{fontSize: FS(44), color: THEME.sub, maxWidth: W * 0.75, lineHeight: 1.4}}>{s.subtitle}</div>}
     </div>
   );
   if (s.type === 'stat') {
     const cp = interpolate(local, [6, 48], [0, 1], {...clamp, easing: Easing.out(Easing.cubic)});
     const pct = percentOf(s.stat?.value);
     const R0 = 215, C = 2 * Math.PI * R0;
-    const num = <div style={{fontSize: pct !== null ? 132 : (vertical ? 140 : 170), fontWeight: 900, color: THEME.accent, lineHeight: 1.1,
+    const num = <div style={{fontSize: FS(pct !== null ? 132 : (vertical ? 140 : 170)), fontWeight: 900, color: THEME.accent, lineHeight: 1.1,
       transform: `translateY(${(1 - a) * 40}px) scale(${1 + 0.06 * Math.max(0, 1 - Math.abs(local - 50) / 8)})`}}>{countUp(s.stat?.value, cp)}</div>;
     return (
     <div style={center}>
@@ -268,8 +270,8 @@ const Card = ({s, local, fps, W, H, font, lang, channel}) => {
           </svg>
           {num}
         </div>) : num}
-      <div style={{fontSize: 50, fontWeight: 600, maxWidth: W * 0.75, marginTop: 20, lineHeight: 1.4}}>{s.stat?.label}</div>
-      {s.stat?.source && <div style={{fontSize: 26, color: THEME.sub, marginTop: 24}}>{s.stat.source}</div>}
+      <div style={{fontSize: FS(50), fontWeight: 600, maxWidth: W * 0.75, marginTop: 20, lineHeight: 1.4}}>{s.stat?.label}</div>
+      {s.stat?.source && <div style={{fontSize: FS(26), color: THEME.sub, marginTop: 24}}>{s.stat.source}</div>}
     </div>
   );}
   if (s.type === 'bullets') return (
@@ -278,7 +280,7 @@ const Card = ({s, local, fps, W, H, font, lang, channel}) => {
       borderLeft: `8px solid ${THEME.accent}`, padding: '34px 40px', borderRadius: 8}}>
       {(s.bullets || []).map((b, j) => {
         const bj = spring({frame: local - 12 - j * 18, fps, config: {damping: 200}});
-        return <div key={j} style={{fontSize: 42, lineHeight: 1.45, marginBottom: 22, opacity: bj,
+        return <div key={j} style={{fontSize: FS(42), lineHeight: 1.45, marginBottom: 22, opacity: bj,
           transform: `translateX(${(1 - bj) * 30}px)`, display: 'flex', gap: 18}}>
           <span style={{color: THEME.accent, fontWeight: 900}}>{j + 1}</span><span>{b}</span></div>;
       })}
@@ -286,8 +288,8 @@ const Card = ({s, local, fps, W, H, font, lang, channel}) => {
   );
   if (s.type === 'quote') return (
     <div style={{...base, left: W * 0.1, top: H * 0.25, width: W * 0.8, textAlign: 'center'}}>
-      <div style={{fontSize: 60, fontWeight: 700, lineHeight: 1.45}}>“{s.quote?.text}”</div>
-      <div style={{fontSize: 36, color: THEME.accent, marginTop: 30}}>{s.quote?.by}</div>
+      <div style={{fontSize: FS(60), fontWeight: 700, lineHeight: 1.45}}>“{typeof s.quote === 'string' ? s.quote : s.quote?.text}”</div>
+      <div style={{fontSize: FS(36), color: THEME.accent, marginTop: 30}}>{(typeof s.quote === 'object' && s.quote?.by) || s.by}</div>
     </div>
   );
   if (s.type === 'timeline') {
@@ -308,8 +310,8 @@ const Card = ({s, local, fps, W, H, font, lang, channel}) => {
             return <div key={j} style={{position: 'absolute', left: 100, top: yy - 22, display: 'flex', gap: 30, opacity: pj,
               transform: `translateX(${(1 - pj) * 30}px)`, alignItems: 'flex-start', width: W - 180}}>
               <div style={{width: 46, height: 46, borderRadius: 23, background: THEME.accent, border: `6px solid ${THEME.bg0}`, flex: '0 0 auto'}} />
-              <div><div style={{fontSize: 44, fontWeight: 900, color: THEME.accent}}>{e.date}</div>
-                <div style={{fontSize: 36, lineHeight: 1.35}}>{e.text}</div></div></div>;
+              <div><div style={{fontSize: FS(44), fontWeight: 900, color: THEME.accent}}>{e.date}</div>
+                <div style={{fontSize: FS(36), lineHeight: 1.35}}>{e.text}</div></div></div>;
           })}
         </div>
       );
@@ -327,8 +329,8 @@ const Card = ({s, local, fps, W, H, font, lang, channel}) => {
                 background: THEME.accent, border: `6px solid ${THEME.bg0}`, transform: `scale(${pj})`}} />
               <div style={{position: 'absolute', left: x - 170, width: 340, textAlign: 'center',
                 top: up ? y - 190 : y + 40, transform: `translateY(${(1 - pj) * (up ? -20 : 20)}px)`}}>
-                <div style={{fontSize: 46, fontWeight: 900, color: THEME.accent}}>{e.date}</div>
-                <div style={{fontSize: 30, lineHeight: 1.35, marginTop: 6}}>{e.text}</div>
+                <div style={{fontSize: FS(46), fontWeight: 900, color: THEME.accent}}>{e.date}</div>
+                <div style={{fontSize: FS(30), lineHeight: 1.35, marginTop: 6}}>{e.text}</div>
               </div>
             </div>
           );
@@ -350,7 +352,7 @@ const Card = ({s, local, fps, W, H, font, lang, channel}) => {
           {[[A, s.compare.a, PALETTE.red], [B, s.compare.b, PALETTE.blue]].map(([c, raw, cc], j) => (
             <div key={j} style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14}}>
               <Flag c={c} h={42} />
-              <span style={{fontSize: 44, fontWeight: 900, color: cc}}>{nm(c, raw)}</span>
+              <span style={{fontSize: FS(44), fontWeight: 900, color: cc}}>{nm(c, raw)}</span>
             </div>
           ))}
         </div>
@@ -360,13 +362,13 @@ const Card = ({s, local, fps, W, H, font, lang, channel}) => {
             <div key={j} style={{display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: 20, alignItems: 'center',
               padding: '18px 0', borderBottom: `1px solid rgba(74,103,132,.5)`, opacity: pj,
               transform: `translateY(${(1 - pj) * 16}px)`}}>
-              <div style={{fontSize: 34, color: THEME.sub}}>{r.label}</div>
-              <div style={{fontSize: 44, fontWeight: 800, textAlign: 'center'}}>{r.a}</div>
-              <div style={{fontSize: 44, fontWeight: 800, textAlign: 'center'}}>{r.b}</div>
+              <div style={{fontSize: FS(34), color: THEME.sub}}>{r.label}</div>
+              <div style={{fontSize: FS(44), fontWeight: 800, textAlign: 'center'}}>{r.a}</div>
+              <div style={{fontSize: FS(44), fontWeight: 800, textAlign: 'center'}}>{r.b}</div>
             </div>
           );
         })}
-        {s.compare.source && <div style={{fontSize: 24, color: THEME.sub, marginTop: 16}}>{s.compare.source}</div>}
+        {s.compare.source && <div style={{fontSize: FS(24), color: THEME.sub, marginTop: 16}}>{s.compare.source}</div>}
       </div>
     );
   }
@@ -385,6 +387,8 @@ export const Explainer = (props) => {
   const adm = useAdm(scenes);
   const look = props.look || 'classic';
   Object.assign(THEME, THEMES[look] || THEMES.classic);
+  if (props.bg && look !== 'light') Object.assign(THEME, bgTheme(props.bg));
+  TXT.k = props.textScale || 1.25;
   const fontT = props.fontText ? `'${props.fontText}','Noto Sans Bengali','Nirmala UI',sans-serif` : font;
   const fontC = props.fontCaption ? `'${props.fontCaption}','Noto Sans Bengali','Nirmala UI',sans-serif` : fontT;
   if (!scenes.length) return <AbsoluteFill style={{background: THEME.bg0}} />;
@@ -427,8 +431,10 @@ export const Explainer = (props) => {
           return Math.min(1, musicVolume * k) * Math.min(1, f / 45, Math.max(0, (durationInFrames - f) / 90));
         }} />}
       {look === 'hud' && !hideChannel && <HudOverlay W={W} H={H} T={THEME} channel={channel} cur={cur} frame={frame} fps={fps}
-        year={props.year || new Date().getFullYear()} />}
-      {look !== 'hud' && channel && !hideChannel && <div style={{position: 'absolute', right: 60, top: 56, color: 'rgba(255,255,255,0.75)', fontSize: 28,
+        year={props.year || new Date().getFullYear()} dataNote={props.dataNote} />}
+      {look !== 'hud' && props.dataNote && !hideChannel && <div style={{position: 'absolute', left: 60, bottom: 22, color: THEME.sub,
+        fontSize: FS(20), opacity: 0.85}}>{props.dataNote}</div>}
+      {look !== 'hud' && channel && !hideChannel && <div style={{position: 'absolute', right: 60, top: 56, color: 'rgba(255,255,255,0.75)', fontSize: FS(28),
         fontWeight: 700, letterSpacing: 2, color: THEME.sub}}>{channel}</div>}
       <div style={{position: 'absolute', left: 0, bottom: 0, height: 6, width: W * frame / durationInFrames,
         background: THEME.accent, opacity: 0.85}} />
@@ -443,8 +449,16 @@ const SceneOverlay = ({it, fps, W, H, font, capFont, captions, lang, channel, lo
   return (
     <AbsoluteFill style={{opacity: out}}>
       {s.type === 'broll' && s.broll_file && <BrollLayer s={s} local={local} frames={it.frames} T={THEME} look={look} W={W} H={H} />}
-      {!['title', 'intro', 'outro', 'chart'].includes(s.type) && <Headline text={s.headline} local={local} fps={fps} font={font} W={W} />}
+      {!OWN_TITLE.includes(s.type) && <Headline text={s.headline} local={local} fps={fps} font={font} W={W} />}
       <Card s={s} local={local} fps={fps} W={W} H={H} font={font} lang={lang} channel={channel} />
+      {s.type === 'tiles' && <TilesCard s={s} local={local} fps={fps} W={W} H={H} T={THEME} font={font} />}
+      {s.type === 'versus' && <VersusCard s={s} local={local} fps={fps} W={W} H={H} T={THEME} font={font} />}
+      {s.type === 'pyramid' && <PyramidCard s={s} local={local} fps={fps} W={W} H={H} T={THEME} font={font} />}
+      {s.type === 'blocks' && <BlocksCard s={s} local={local} fps={fps} W={W} H={H} T={THEME} font={font} />}
+      {s.type === 'checklist' && <ChecklistCard s={s} local={local} fps={fps} W={W} H={H} T={THEME} font={font} />}
+      <LowerThirds s={s} local={local} fps={fps} frames={it.frames} W={W} H={H} T={THEME} font={font} />
+      <TagFlash s={s} local={local} W={W} H={H} T={THEME} />
+      <Footnote s={s} local={local} W={W} H={H} T={THEME} font={font} />
       {s.type === 'chart' && <ChartCard s={s} local={local} fps={fps} W={W} H={H} T={THEME} font={font} look={look} lang={lang} />}
       {s.type === 'choropleth' && <ChoroLegend s={s} T={THEME} W={W} H={H} local={local} fps={fps} lang={lang} font={font} />}
       {captions && <Caption cues={s.cues} local={local} fps={fps} W={W} H={H} font={capFont || font} />}

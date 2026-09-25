@@ -33,3 +33,5 @@ public/sfx/lib/*.mp3
 # your own fonts
 fonts/*
 !fonts/README.txt
+music/_lib/
+*.bak

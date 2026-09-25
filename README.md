@@ -61,6 +61,51 @@ Extra Bangla fonts: copy the `.ttf` into `fonts/` and restart.
 
 More detail: `HOW TO USE.txt`.
 
+## Production scripts with your own voice (ElevenLabs, Google AI Studio)
+
+Paste the whole production document into **Use my own recording**, attach the narration audio and build.
+The studio recognises this layout (markdown `**` and `#` are ignored):
+
+```
+ডেঙ্গু ২০২৬: এক মাসে আট মাসের মৃত্যু ছাড়াল
+চ্যানেল: POLITICAL ANALYTICA | দৈর্ঘ্য: ৩-৪ মিনিট | ডেটা কাটঅফ: ২৪ সেপ্টেম্বর ২০২৬, DGHS
+
+অংশ ১: হুক (০:০০ - ০:২০)
+ন্যারেশন:
+...the words you recorded...
+ভিজ্যুয়াল:
+- B-roll: হাসপাতালের ওয়ার্ড
+- HUD লাল কাউন্টার ৯৭ বনাম ১১২
+
+ভয়েসওভারের জন্য শুধু ন্যারেশন      (skipped: the same words again)
+চার্ট ডেটা শিট                       (numbers and sources the graphics may use)
+```
+
+What happens:
+
+1. Each section's narration is cut into beats of one or two sentences (about 5 to 10 seconds).
+2. Gemini reads your visual directions and gives every beat one graphic: B-roll, versus counter,
+   stat tiles, R charts (a running month or year can be drawn striped with an asterisk), division
+   heat map, timeline, icon blocks, pyramid, checklist, lower thirds, flash tags, footnotes.
+   If Gemini is out of quota, the local Ollama model on this PC (`local_model` in settings.json,
+   default `gemma4:latest`) does the planning.
+3. Every number on a chart, tile or heat map is checked against your narration and data sheet.
+   A share worked out from two of your numbers (352 of 1,868 = 19 %) is allowed. Anything else is
+   dropped and the log says which number was the problem.
+4. B-roll must name the country and match the subject of the beat. A clip about another story
+   (refugee camp, fire, festival) is rejected. If nothing fits, a clip already used in the video is
+   reused from a later point; failing that, the map is shown.
+5. The narration audio is aligned word by word (MMS), cut at the beats and rendered. Channel name and
+   the data cut-off line come from the header.
+
+Look settings: **Background colour** (navy, blue, deep red, maroon, teal, green, purple, brown,
+charcoal) and **Text size** (Normal to Very large) sit next to Look. With red backgrounds the accent
+turns amber so red bars stay visible.
+
+Music: tracks in `music_library` (settings.json, default `E:\Organized\Audio\royality free music`)
+are added to the music list automatically (zips opened, WAV turned into MP3) and used first for
+tension videos. They are your licensed tracks, so no credit line is written for them.
+
 ## Credits and licences
 
 - Music: Kevin MacLeod (incompetech.com), CC BY 4.0. The credit is written to `_CREDITS.txt` / `_YOUTUBE.txt` for each video.
