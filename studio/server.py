@@ -39,11 +39,25 @@ DEFAULTS = {
     "broll_strict": True,
     "recent_music": [],
     "music_volume": 0.1,
+    "output_dir": "",
 }
 VOICES = ["Charon", "Kore", "Puck", "Fenrir", "Aoede", "Zephyr", "Leda", "Orus", "Callirrhoe", "Autonoe",
           "Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi",
           "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird",
           "Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat"]
+
+
+def out_dir():
+    """Where finished videos go: the folder chosen in Settings, or geo-explainer/outputs."""
+    d = (load_settings().get("output_dir") or "").strip()
+    if d:
+        try:
+            os.makedirs(d, exist_ok=True)
+            if os.access(d, os.W_OK):
+                return d
+        except Exception:
+            pass
+    return OUTPUTS
 
 
 def load_settings():
@@ -1329,7 +1343,7 @@ def render(job, name, opts):
              "width": 1080 if vertical else 1920, "height": 1920 if vertical else 1080}
     props_file = os.path.join(proj_dir(name), "render_props.json")
     json.dump(props, open(props_file, "w", encoding="utf-8"), ensure_ascii=False)
-    out = os.path.join(OUTPUTS, f"{name}_{time.strftime('%Y%m%d_%H%M')}{'_vertical' if vertical else ''}.mp4")
+    out = os.path.join(out_dir(), f"{name}_{time.strftime('%Y%m%d_%H%M')}{'_vertical' if vertical else ''}.mp4")
     cli = os.path.join(ROOT, "node_modules", "@remotion", "cli", "remotion-cli.js")
     cmd = [node_exe(), cli, "render", "src/index.jsx", "Explainer", out, f"--props={props_file}",
            "--codec=h264", "--crf=20"] + RENDER_FLAGS
@@ -2106,6 +2120,7 @@ def get_settings():
     s["voices"] = VOICES
     s["music_files"] = sorted(f for f in os.listdir(MUSIC) if f.lower().endswith((".mp3", ".wav", ".m4a")))
     s["music_moods"] = {k: v.get("mood", "") for k, v in music_credits().items() if isinstance(v, dict)}
+    s["output_dir_now"] = out_dir()
     s["music_user"] = [k for k, v in music_credits().items() if isinstance(v, dict) and v.get("user")]
     return jsonify(s)
 
@@ -2113,6 +2128,14 @@ def get_settings():
 @app.post("/api/settings")
 def post_settings():
     s = load_settings()
+    od = ((request.json or {}).get("output_dir") or "").strip()
+    if od:
+        try:
+            os.makedirs(od, exist_ok=True)
+            if not os.access(od, os.W_OK):
+                raise OSError("not writable")
+        except Exception as e:
+            return jsonify(error=f"Cannot save videos in {od}: {e}"), 400
     for k, v in (request.json or {}).items():
         if k in DEFAULTS and not (k == "gemini_key" and (not v or v.startswith("*"))):
             s[k] = v
@@ -2233,14 +2256,15 @@ def media(name, f):
 
 @app.get("/api/outputs")
 def outputs():
-    fs = sorted((f for f in os.listdir(OUTPUTS) if f.endswith(".mp4")),
-                key=lambda f: os.path.getmtime(os.path.join(OUTPUTS, f)), reverse=True)
+    od = out_dir()
+    fs = sorted((f for f in os.listdir(od) if f.endswith(".mp4")),
+                key=lambda f: os.path.getmtime(os.path.join(od, f)), reverse=True)
     return jsonify(fs)
 
 
 @app.get("/video/<path:f>")
 def video(f):
-    return send_from_directory(OUTPUTS, f)
+    return send_from_directory(out_dir(), f)
 
 
 @app.post("/api/open")
@@ -2251,10 +2275,28 @@ def open_folder():
         path = os.path.join(ROOT, "broll", reg)
         os.makedirs(path, exist_ok=True)
     else:
-        path = {"outputs": OUTPUTS, "music": MUSIC, "projects": PROJECTS}.get(what, OUTPUTS)
+        path = {"outputs": out_dir(), "music": MUSIC, "projects": PROJECTS}.get(what, out_dir())
     if os.name == "nt":
         os.startfile(path)
     return jsonify(ok=True)
+
+
+@app.post("/api/pick_folder")
+def pick_folder():
+    """Native Windows folder picker (opens on top of the browser)."""
+    ps = ("Add-Type -AssemblyName System.Windows.Forms;"
+          "$f=New-Object System.Windows.Forms.Form -Property @{TopMost=$true;ShowInTaskbar=$false};"
+          "$d=New-Object System.Windows.Forms.FolderBrowserDialog;$d.ShowNewFolderButton=$true;"
+          "$d.Description='Folder for finished videos';"
+          f"$d.SelectedPath='{out_dir()}';"
+          "if($d.ShowDialog($f) -eq 'OK'){[Console]::OutputEncoding=[Text.Encoding]::UTF8;$d.SelectedPath}")
+    try:
+        r = subprocess.run(["powershell", "-NoProfile", "-STA", "-Command", ps], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=600,
+                           creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+        return jsonify(path=(r.stdout or "").strip())
+    except Exception as e:
+        return jsonify(path="", error=str(e))
 
 
 @app.post("/api/quit")

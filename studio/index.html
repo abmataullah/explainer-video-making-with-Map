@@ -209,6 +209,10 @@ a{color:var(--acc)}
     <div><label>Fallback models (comma)</label><input id="s_script_fallback"></div></div>
   <div class="row"><div><label>Voice model</label><input id="s_tts_model"></div><div><label>Voice fallbacks</label><input id="s_tts_fallback"></div></div>
   <div class="row"><div><label>Default voice</label><select id="s_voice"></select></div><div style="flex:2"><label>Default voice direction</label><input id="s_style"></div></div>
+  <label>Save finished videos to (leave empty for the geo-explainer\outputs folder)</label>
+  <div style="display:flex;gap:6px"><input id="s_output_dir" placeholder="D:\Videos\GeoExplainer" style="flex:1">
+    <button class="sm" onclick="browseOut()">Browse...</button><button class="sm" title="Back to the default folder" onclick="$('s_output_dir').value=''">Default</button></div>
+  <div class="hint" id="outNow"></div>
   <label>Pexels API key (free at pexels.com/api, used for B-roll footage)</label><input id="s_pexels_key" placeholder="leave blank to use Avatar Studio's key">
   <div class="row" style="margin-top:16px"><div></div>
     <button class="auto" onclick="dlg.close()">Cancel</button>
@@ -620,12 +624,18 @@ function showVideo(f, credit) {
   $('result').scrollIntoView({behavior: 'smooth'});
 }
 const openFolder = (what) => api('/api/open', {what});
-const SK = ['script_model', 'script_fallback', 'tts_model', 'tts_fallback', 'pexels_key', 'voice', 'style'];
-function settingsDlg() { SK.forEach((k) => $('s_' + k).value = S[k] || ''); $('s_key').value = S.gemini_key || ''; dlg.showModal(); }
+const SK = ['script_model', 'script_fallback', 'tts_model', 'tts_fallback', 'pexels_key', 'voice', 'style', 'output_dir'];
+async function browseOut() {
+  const r = await api('/api/pick_folder', {});
+  if (r.path) $('s_output_dir').value = r.path;
+}
+function settingsDlg() {
+  if ($('outNow')) $('outNow').textContent = 'Videos are now saved in: ' + (S.output_dir_now || ''); SK.forEach((k) => $('s_' + k).value = S[k] || ''); $('s_key').value = S.gemini_key || ''; dlg.showModal(); }
 async function saveSettings() {
   const b = {gemini_key: $('s_key').value.trim()};
   SK.forEach((k) => b[k] = $('s_' + k).value.trim());
-  await api('/api/settings', b); dlg.close(); init();
+  try { await api('/api/settings', b); } catch (e) { alert(String(e.message || e).replace(/^.*"error":\s*"?|"?}\s*$/g, '')); return; }
+  dlg.close(); init();
 }
 async function quitApp() { if (confirm('Stop Geo Explainer Studio?')) { await api('/api/quit', {}); document.body.innerHTML = '<h2 style="padding:40px">Studio stopped. Start it again from GeoExplainer.exe.</h2>'; } }
 init();
