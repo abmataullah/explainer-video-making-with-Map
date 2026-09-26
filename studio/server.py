@@ -27,6 +27,12 @@ DEFAULTS = {
     "tts_model": "gemini-2.5-pro-preview-tts",
     "tts_fallback": "gemini-3.8-flash-tts, gemini-3.1-flash-tts-preview",
     "voice": "Charon",
+    "voice_en": "Charon",
+    # IndicF5: local Bangla voice (ai4bharat/IndicF5). The Python environment belongs to the Aziz
+    # English video maker; it is only run from here, never changed.
+    "indicf5_python": r"D:\my random work\Aziz english video maker\envs\indicf5\Scripts\python.exe",
+    "indicf5_ref_audio": r"voices\bangla_female.wav",
+    "indicf5_ref_text": "আজ খুঁজব হাম ফেরার পেছনে কার কোন সিদ্ধান্ত দায়ী, আর দুই কোটি টিকা দেওয়ার পরও কেন মৃত্যু থামছে না।",
     "style": "Read like a calm, authoritative Bangladeshi documentary narrator. Clear, measured pace.",
     "channel": "GEO EXPLAINER",
     "channels": ["GEO EXPLAINER", "POLITICAL ANALYTICA", "TRUE NEWS"],
@@ -46,7 +52,7 @@ DEFAULTS = {
     "music_volume": 0.1,
     "output_dir": "",
 }
-VOICES = ["Charon", "Kore", "Puck", "Fenrir", "Aoede", "Zephyr", "Leda", "Orus", "Callirrhoe", "Autonoe",
+VOICES = ["IndicF5", "Charon", "Kore", "Puck", "Fenrir", "Aoede", "Zephyr", "Leda", "Orus", "Callirrhoe", "Autonoe",
           "Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi",
           "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird",
           "Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat"]
@@ -622,7 +628,7 @@ def synth_scene(c, s, p, i, sc):
     if not text:
         sc["audio"], sc["duration"], sc["cues"] = None, float(sc.get("duration") or 3), []
         return
-    voice = p.get("voice") or s["voice"]
+    voice = gemini_voice(p, s)
     style = sc.get("style") or p.get("style") or s["style"]
     chunks, breaks, pos = [], [], 0
     for m in BREAK.finditer(text):
@@ -671,17 +677,239 @@ def hash_scene(sc, voice, style):
     import hashlib
     return hashlib.md5(f"{sc.get('narration')}|{voice}|{style}|{TTS_FORMAT}".encode("utf-8")).hexdigest()
 
+# ------------------------------------------------------------ IndicF5 voice --
+# Local Bangla voice (ai4bharat/IndicF5) on the graphics card. It copies the voice of a short
+# reference clip, so the clip's exact words are needed too (settings: indicf5_ref_audio,
+# indicf5_ref_text). Numbers are spelled out before speaking; captions keep the digits.
+
+def gemini_voice(p, s):
+    v = p.get("voice") or s["voice"]
+    return s.get("voice_en") or "Charon" if str(v).lower().startswith("indicf5") else v
+
+
+def indicf5_on(p, s):
+    v = str(p.get("voice") or s.get("voice") or "")
+    return v.lower().startswith("indicf5") and (p.get("lang") or "bn") == "bn"
+
+
+def indicf5_ref(s):
+    ref = s.get("indicf5_ref_audio") or ""
+    if ref and not os.path.isabs(ref):
+        ref = os.path.join(ROOT, ref)
+    text = (s.get("indicf5_ref_text") or "").strip()
+    if not ref or not os.path.exists(ref) or not text:
+        raise RuntimeError("IndicF5 needs a voice sample: indicf5_ref_audio (a clean 6-10 s Bangla clip) and "
+                           "indicf5_ref_text (its exact words) in settings.json.")
+    py = s.get("indicf5_python") or ""
+    if not os.path.exists(py):
+        raise RuntimeError(f"IndicF5 Python not found: {py}. Set indicf5_python in settings.json.")
+    return py, ref, text
+
+
+def _trim_silence(x, thr=400):
+    import numpy as np
+    idx = np.where(np.abs(x.astype(np.int32)) > thr)[0]
+    if not len(idx):
+        return x
+    pad = int(0.06 * 24000)
+    return x[max(0, idx[0] - pad): idx[-1] + pad]
+
+
+def free_gpu_from_ollama(job):
+    """An 8 GB card cannot hold an Ollama model and IndicF5 at once (the voice then runs 3x slower).
+    Ask Ollama to let go of its loaded models; it loads them again the next time they are needed.
+    Your OLLAMA_KEEP_ALIVE setting is not changed."""
+    try:
+        import urllib.request
+        ps = json.load(urllib.request.urlopen("http://127.0.0.1:11434/api/ps", timeout=3))
+        for m in ps.get("models") or []:
+            req = urllib.request.Request("http://127.0.0.1:11434/api/generate",
+                                         data=json.dumps({"model": m["name"], "keep_alive": 0}).encode(),
+                                         headers={"Content-Type": "application/json"})
+            urllib.request.urlopen(req, timeout=20).read()
+            log(job, f"  Freed the graphics card: Ollama unloaded {m['name']} for the voice step")
+    except Exception:
+        pass
+
+
+def indicf5_batch(job, lines, s):
+    """Speak every line with IndicF5, loading the model once. Returns {line: int16 array, 24 kHz}.
+    Lines are cached by text and voice, so a changed scene only re-voices what changed."""
+    import hashlib
+    py, ref, ref_text = indicf5_ref(s)
+    cdir = os.path.join(ROOT, "cache", "indicf5")
+    os.makedirs(cdir, exist_ok=True)
+    vid = f"{ref}|{os.path.getmtime(ref)}|{ref_text}"
+    out, todo = {}, []
+    for t in dict.fromkeys(lines):
+        k = hashlib.md5(f"{t}|{vid}".encode("utf-8")).hexdigest()[:16]
+        f = os.path.join(cdir, k + ".wav")
+        out[t] = f
+        if not os.path.exists(f):
+            todo.append({"text": t, "out": os.path.join(cdir, k + ".raw.wav"), "final": f})
+    if todo:
+        free_gpu_from_ollama(job)
+        jf = os.path.join(cdir, f"job_{os.getpid()}_{int(time.time())}.json")
+        json.dump({"ref_audio": ref, "ref_text": ref_text,
+                   "items": [{"text": it["text"], "out": it["out"]} for it in todo]},
+                  open(jf, "w", encoding="utf-8"), ensure_ascii=False)
+        log(job, f"IndicF5 on this PC: {len(todo)} line(s) to speak, {len(out) - len(todo)} already cached. "
+                 "The model loads in about 20 s, then 5-10 s a line.")
+        env = dict(os.environ, PYTHONIOENCODING="utf-8")
+        flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+        pr = subprocess.Popen([py, "-u", os.path.join(HERE, "tts_indicf5.py"), jf], stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, env=env, creationflags=flags)
+        tail = []
+        for raw in pr.stdout:
+            line = raw.decode("utf-8", "replace").rstrip()
+            if not line:
+                continue
+            tail = (tail + [line])[-12:]
+            m = re.match(r"\s*voice (\d+)/(\d+)", line)
+            if m:
+                a, b = int(m.group(1)), int(m.group(2))
+                job["progress"] = int(90 * a / max(1, b))
+                if a == 1 or a % 5 == 0 or a == b:
+                    log(job, f"  IndicF5 line {a}/{b}")
+            elif line.startswith("GPU:"):
+                log(job, "  IndicF5 model loaded on " + line[4:].strip())
+        pr.wait()
+        try:
+            os.remove(jf)
+        except OSError:
+            pass
+        if pr.returncode != 0:
+            raise RuntimeError("IndicF5 failed:\n" + "\n".join(tail))
+        for it in todo:
+            write_wav(it["final"], _trim_silence(load_audio_24k(it["out"])))
+            try:
+                os.remove(it["out"])
+            except OSError:
+                pass
+    return {t: load_audio_24k(f) for t, f in out.items()}
+
+
+def _sentences(text):
+    out = []
+    for x in re.split(r"(?<=[।?!])\s+", text or ""):
+        x = x.strip()
+        if not x:
+            continue
+        if out and len(out[-1]) < 25:
+            out[-1] += " " + x
+        else:
+            out.append(x)
+    return out
+
+
+def gen_audio_indicf5(job, p, s, only=None, force=False):
+    """Voice the scenes with IndicF5, one sentence at a time, and time the captions per sentence."""
+    import hashlib
+    import numpy as np
+    from bn_speak import spoken_bn
+    name = p["name"]
+    _, ref, ref_text = indicf5_ref(s)
+    voice = "IndicF5:" + os.path.basename(ref) + ":" + hashlib.md5(ref_text.encode("utf-8")).hexdigest()[:6]
+    idxs = [only] if only is not None else list(range(len(p["scenes"])))
+    todo, plan, lines = [], {}, []
+    for i in idxs:
+        sc = p["scenes"][i]
+        style = sc.get("style") or p.get("style") or s["style"]
+        if sc.get("audio_src") == "upload" and not force:
+            log(job, f"Scene {i + 1}: uses your uploaded audio, skipping")
+            continue
+        existing = sc.get("audio") and os.path.exists(os.path.join(proj_dir(name), sc["audio"]))
+        if not force and existing and sc.get("audio_hash") == hash_scene(sc, voice, style):
+            continue
+        text = (sc.get("narration") or "").strip()
+        segs, pos = [], 0                       # (caption text, spoken text, pause ms after)
+        for m in list(BREAK.finditer(text)) + [None]:
+            sents = _sentences(text[pos:m.start()] if m else text[pos:])
+            segs += [(x, spoken_bn(x), 200) for x in sents]
+            if m:
+                if segs:
+                    segs[-1] = (segs[-1][0], segs[-1][1], segs[-1][2] + int(m.group(1)))
+                pos = m.end()
+        if segs:
+            segs[-1] = (segs[-1][0], segs[-1][1], 0)
+        plan[i] = (segs, style)
+        lines += [sp for _, sp, _ in segs]
+        todo.append(i)
+    if not todo:
+        log(job, "Every scene already has its IndicF5 voice.")
+    else:
+        waves = indicf5_batch(job, lines, s) if lines else {}
+        sr = 24000
+        for i in todo:
+            sc = p["scenes"][i]
+            segs, style = plan[i]
+            if not segs:
+                sc["audio"], sc["duration"], sc["cues"] = None, float(sc.get("duration") or 3), []
+                continue
+            parts, cues, t = [np.zeros(int(sr * 0.25), dtype=np.int16)], [], 0.25
+            for cap, sp, gap in segs:
+                w = waves[sp]
+                parts.append(w)
+                cues += aligned_cues(cap, w, t)
+                t += len(w) / sr
+                if gap:
+                    parts.append(np.zeros(int(sr * gap / 1000), dtype=np.int16))
+                    t += gap / 1000
+            parts.append(np.zeros(int(sr * 0.45), dtype=np.int16))
+            audio = np.concatenate(parts)
+            rel = f"audio/s{i:02d}.wav"
+            write_wav(os.path.join(proj_dir(name), rel), audio)
+            sc.update({"audio": rel, "audio_src": "tts", "duration": round(len(audio) / sr, 2), "cues": cues})
+            sc["audio_hash"] = hash_scene(sc, voice, style)
+    t = 0.0
+    for sc in p["scenes"]:
+        sc["start"] = round(t, 2)
+        t += float(sc.get("duration") or 0)
+    save_project(p)
+    job["progress"] = 100
+    log(job, f"Audio ready (IndicF5). Total length {int(t // 60)}:{int(t % 60):02d}")
+    return {"project": name}
+
+
+def indicf5_ready(s):
+    try:
+        indicf5_ref(s)
+        return True
+    except Exception:
+        return False
+
 
 def gen_audio(job, name, only=None, force=False):
+    """Google (Gemini) voice first. If it fails on a Bangla project, IndicF5 on this PC voices the
+    whole video, so every scene keeps the same voice. Uploaded recordings are never replaced."""
     s = load_settings()
     p = load_project(name)
     if not p:
         raise RuntimeError("project not found")
+    if indicf5_on(p, s):
+        return gen_audio_indicf5(job, p, s, only, force)
+    try:
+        return gen_audio_gemini(job, name, only, force)
+    except Exception as e:
+        if (p.get("lang") or "bn") != "bn" or not indicf5_ready(s):
+            raise
+        log(job, f"Google voice failed ({str(e)[:140]}). Switching to IndicF5 on this PC for the whole "
+                 "video, so every scene has the same voice.")
+        return gen_audio_indicf5(job, load_project(name), s, None, True)
+
+
+def gen_audio_gemini(job, name, only=None, force=False):
+    s = load_settings()
+    p = load_project(name)
+    if not p:
+        raise RuntimeError("project not found")
+    if indicf5_on(p, s):
+        return gen_audio_indicf5(job, p, s, only, force)
     c = client()
     idxs = [only] if only is not None else list(range(len(p["scenes"])))
     for n, i in enumerate(idxs):
         sc = p["scenes"][i]
-        voice = p.get("voice") or s["voice"]
+        voice = gemini_voice(p, s)
         style = sc.get("style") or p.get("style") or s["style"]
         if sc.get("audio_src") == "upload" and not force:
             log(job, f"Scene {i + 1}: uses your uploaded audio, skipping")
@@ -2164,7 +2392,7 @@ def build_from_audio(job, req):
     name = safe_name(req.get("name") or req.get("title") or "my_audio")
     d = proj_dir(name)
     os.makedirs(os.path.join(d, "upload"), exist_ok=True)
-    src = req["audio_path"]
+    src = req.get("audio_path")
     lang = req.get("lang", "bn")
     title = req.get("title", "").strip()
     raw = req.get("script", "")
@@ -2194,13 +2422,17 @@ def build_from_audio(job, req):
              "short lines are joined so each scene lasts about 6-15 seconds.")
     job["progress"] = 5
 
-    log(job, "Reading your audio...")
-    x = load_audio_24k(src)
-    dur = len(x) / 24000
-    log(job, f"Audio length {int(dur // 60)}:{int(dur % 60):02d}")
-    peak = int(np.abs(x).max()) if len(x) else 0
-    if dur < 2 or peak < 300:
-        raise RuntimeError("The audio file looks empty or silent.")
+    if src:
+        log(job, "Reading your audio...")
+        x = load_audio_24k(src)
+        dur = len(x) / 24000
+        log(job, f"Audio length {int(dur // 60)}:{int(dur % 60):02d}")
+        peak = int(np.abs(x).max()) if len(x) else 0
+        if dur < 2 or peak < 300:
+            raise RuntimeError("The audio file looks empty or silent.")
+    else:
+        x, dur = None, 0
+        log(job, "No recording: the script will be spoken after the visuals are planned.")
     job["progress"] = 15
 
     scenes = None
@@ -2240,38 +2472,68 @@ def build_from_audio(job, req):
     p = load_project(name) or {}
     p.update({"name": name, "title": title or p.get("title") or name, "lang": lang,
               "topic": title, "scenes": scenes, "sources": [],
-              "upload": {"file": os.path.basename(src)}})
+              "upload": {"file": os.path.basename(src) if src else ""}})
+    if not src:
+        p.pop("upload", None)
     if prod:
         p["data_note"] = ("তথ্য: " if lang == "bn" else "Data: ") + prod["cutoff"] if prod["cutoff"] else ""
         p["channel"] = prod["channel"]
     else:
         p.pop("data_note", None)
     p["scenes"] = [normalize_scene(sc) for sc in p["scenes"]]
-    words = whisper_words(job, x, lang, os.path.join(d, "upload"), texts) if req.get("whisper", True) else None
-    job["progress"] = 55
-    if words:
-        cov = spoken_coverage(texts, words)
-        missing = [i for i, c in enumerate(cov) if c < 0.2]
-        if missing and len(missing) < len(texts):
-            for i in missing:
-                log(job, f"NOT IN YOUR RECORDING, left out: \"{texts[i][:70]}...\"")
-            keep = [i for i in range(len(texts)) if i not in missing]
-            texts = [texts[i] for i in keep]
-            sections = [sections[i] for i in keep]
-            p["scenes"] = [p["scenes"][i] for i in keep]
-            if p["scenes"] and p["scenes"][0].get("type") != "title" and scenes and scenes[0].get("type") == "title":
-                p["scenes"][0]["type"] = "title"
-            log(job, f"{len(missing)} scene(s) removed because the voice never says them. "
-                     "If they should be in the video, re-record or fix the script and build again.")
-    cuts = word_boundaries(texts, words, dur, x) if words else None
-    if cuts:
-        log(job, "Scene changes found from the recognised words.")
-    else:
+    if src:
+        words = whisper_words(job, x, lang, os.path.join(d, "upload"), texts) if req.get("whisper", True) else None
+        job["progress"] = 55
         if words:
-            log(job, "Could not match every scene to the words; using pause detection for the cuts.")
-        cuts = scene_boundaries(x, texts)
-    cut_scenes(p, x, cuts, words)
-    save_project(p)
+            cov = spoken_coverage(texts, words)
+            missing = [i for i, c in enumerate(cov) if c < 0.2]
+            if missing and len(missing) < len(texts):
+                for i in missing:
+                    log(job, f"NOT IN YOUR RECORDING, left out: \"{texts[i][:70]}...\"")
+                keep = [i for i in range(len(texts)) if i not in missing]
+                texts = [texts[i] for i in keep]
+                sections = [sections[i] for i in keep]
+                p["scenes"] = [p["scenes"][i] for i in keep]
+                if p["scenes"] and p["scenes"][0].get("type") != "title" and scenes and scenes[0].get("type") == "title":
+                    p["scenes"][0]["type"] = "title"
+                log(job, f"{len(missing)} scene(s) removed because the voice never says them. "
+                         "If they should be in the video, re-record or fix the script and build again.")
+        cuts = word_boundaries(texts, words, dur, x) if words else None
+        if cuts:
+            log(job, "Scene changes found from the recognised words.")
+        else:
+            if words:
+                log(job, "Could not match every scene to the words; using pause detection for the cuts.")
+            cuts = scene_boundaries(x, texts)
+        cut_scenes(p, x, cuts, words)
+        save_project(p)
+    else:
+        st = load_settings()
+        v = req.get("voice") or st.get("voice") or "Charon"
+        if lang != "bn" and str(v).lower().startswith("indicf5"):
+            v = st.get("voice_en") or "Charon"
+        p["voice"] = v
+        for sc in p["scenes"]:
+            sc.pop("audio_src", None)
+            sc.pop("audio_hash", None)
+        save_project(p)
+        log(job, "Speaking the script with " + ("IndicF5 on this PC" if str(v).lower().startswith("indicf5") else
+                 f"the Google voice {v} (IndicF5 on this PC takes over if Google fails)") + "...")
+        sub, th_err = {"log": job["log"], "progress": 0}, []
+
+        def speak():
+            try:
+                gen_audio(sub, name, None, True)
+            except Exception as e:
+                th_err.append(e)
+        th = threading.Thread(target=speak, daemon=True)
+        th.start()
+        while th.is_alive():
+            job["progress"] = 45 + int(15 * sub.get("progress", 0) / 100)
+            time.sleep(0.5)
+        if th_err:
+            raise th_err[0]
+        p = load_project(name)
     job["project"] = name
     log(job, "Scenes start at: " + ", ".join(f"{sc['start']:.1f}s" for sc in p["scenes"]))
     job["progress"] = 60
@@ -2469,6 +2731,26 @@ def api_own_audio():
     if request.form.get("render"):
         req["render"] = json.loads(request.form["render"])
     return jsonify(job=start_job("own_audio", build_from_audio, req))
+
+
+@app.post("/api/script_voice")
+def api_script_voice():
+    """A script with no recording: plan the visuals, then speak it (IndicF5 for Bangla)."""
+    r = request.json or {}
+    script = r.get("script") or ""
+    if not script.strip():
+        return jsonify(error="Paste the script first"), 400
+    title = (r.get("title") or "").strip()
+    if not title:
+        import production as PR
+        if PR.is_production(script):
+            title = PR.parse_production(script).get("title") or ""
+    req = {"name": r.get("name") or title or "script", "title": title, "script": script,
+           "lang": r.get("lang", "bn"), "design": r.get("design", "gemini"), "audio_path": None,
+           "voice": r.get("voice")}
+    if r.get("render"):
+        req["render"] = r["render"]
+    return jsonify(job=start_job("script_voice", build_from_audio, req))
 
 
 @app.post("/api/recut/<name>")

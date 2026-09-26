@@ -36,3 +36,6 @@ fonts/*
 music/_lib/
 *.bak
 broll/
+
+voices/
+*.pre_indicf5.bak

@@ -103,9 +103,9 @@ a{color:var(--acc)}
   </div>
   <div id="own" style="display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
     <h2 style="font-size:15px">🎧 Make the video from my own recording</h2>
-    <div class="muted">Use any recording: ElevenLabs, AI Studio in the browser, or your own voice. No Gemini voice needed.</div>
+    <div class="muted">Use any recording: ElevenLabs, AI Studio in the browser, or your own voice. No Gemini voice needed. No recording? Leave the audio file empty: the Google voice speaks the script, and if Google fails, IndicF5 (a Bangla voice on this PC) takes over.</div>
     <div class="row">
-      <div style="flex:2"><label>Audio file (mp3, wav, m4a...)</label><input type="file" id="ownFile" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.aac"></div>
+      <div style="flex:2"><label>Audio file (mp3, wav, m4a...) or leave empty</label><input type="file" id="ownFile" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.aac"></div>
       <div style="flex:2"><label>Video title</label><input id="ownTitle" placeholder="রোহিঙ্গা সংকট"></div>
     </div>
     <label>The script you recorded (ElevenLabs, Google AI Studio or your own voice). Two ways work: plain paragraphs, or your full production script with <b>অংশ ১: ...</b>, <b>ন্যারেশন:</b> and <b>ভিজ্যুয়াল:</b>. With a production script the narration is cut into 5-10 s beats, your visual directions become the graphics, the channel and data cut-off line are read from the header, and the voiceover-only copy and the data sheet are not spoken. Title is optional then.</label>
@@ -116,7 +116,7 @@ a{color:var(--acc)}
       <label class="chk auto"><input type="checkbox" id="ownGemini" checked> Let Gemini design the maps (automatic maps if Gemini is busy)</label>
       <label class="chk auto"><input type="checkbox" id="ownRender" checked> Render straight away</label>
       <div></div>
-      <button class="pri auto" id="btnOwn" onclick="ownAudio()">Build video from my audio</button>
+      <button class="pri auto" id="btnOwn" onclick="ownAudio()">Build video</button>
     </div>
     <div class="hint">Your words are never changed. The studio matches every word of your script to the recording (forced alignment on your graphics card) to cut the scenes and time the captions.</div>
   </div>
@@ -572,7 +572,7 @@ async function oneClick(resume) {
 function toggleOwn() { const o = $('own'); o.style.display = o.style.display === 'none' ? 'block' : 'none'; if (o.style.display === 'block') o.scrollIntoView({behavior: 'smooth'}); }
 async function ownAudio(resume) {
   const f = $('ownFile').files[0];
-  if (!f) return alert('Choose your audio file first');
+  if (!f) return voiceScript();
   if (!$('ownScript').value.trim()) return alert('Paste the script you recorded');
   const fd = new FormData();
   fd.append('audio', f); fd.append('script', $('ownScript').value); fd.append('title', $('ownTitle').value.trim());
@@ -590,6 +590,17 @@ async function ownAudio(resume) {
     if (res.file) showVideo(res.file, res.credit); else $('step2').scrollIntoView({behavior: 'smooth'});
     refreshLists();
   } finally { btn.disabled = false; }
+}
+async function voiceScript() {
+  const script = $('ownScript').value.trim();
+  if (!script) return alert('Paste the script first');
+  if (!confirm('No audio file chosen. Speak this script with the Google voice? If Google fails, IndicF5 on this PC speaks it.')) return;
+  const title = $('ownTitle').value.trim();
+  const r = await runJob('Speaking the script', '/api/script_voice', {script, title, name: title, lang: $('lang').value,
+    design: $('ownGemini').checked ? 'gemini' : 'auto', render: $('ownRender').checked ? renderOpts($('aspect1').value, $('music1').value) : null}, $('btnOwn'));
+  await loadProject(r.project);
+  if (r.file) showVideo(r.file, r.credit); else $('step2').scrollIntoView({behavior: 'smooth'});
+  refreshLists();
 }
 async function recutAudio() {
   const cuts = P.scenes.slice(1).map((s) => +s.start);

@@ -106,6 +106,21 @@ Music: tracks in `music_library` (settings.json, default `E:\Organized\Audio\roy
 are added to the music list automatically (zips opened, WAV turned into MP3) and used first for
 tension videos. They are your licensed tracks, so no credit line is written for them.
 
+## Voice: Google first, IndicF5 as the fallback
+
+1. **Your own recording** (ElevenLabs, Google AI Studio, your voice): upload it with the script. It is never re-voiced.
+2. **Google (Gemini) voice**: the default for scripts with no recording.
+3. **IndicF5** (ai4bharat/IndicF5, runs on this PC's graphics card): takes over when the Google voice fails on a
+   Bangla project, and then voices the *whole* video so every scene has the same voice. It can also be picked by
+   hand as the voice `IndicF5`.
+
+IndicF5 copies the voice in `voices/bangla_female.wav`; `indicf5_ref_text` in settings.json must be the exact words
+of that clip. The Python environment is the one in the Aziz English video maker (`indicf5_python`); it is only
+run, nothing there is changed. Numbers are spelled out before speaking (৬৯ হাজার ১৪৯ becomes ঊনসত্তর হাজার একশো
+ঊনপঞ্চাশ, ১৯৭১ becomes উনিশশো একাত্তর); captions keep the digits. Each sentence is voiced once and cached in
+`cache/indicf5/`. Before voicing, Ollama is asked to unload its model so the 8 GB card is free (your keep-alive
+setting is not changed). Speed on the RTX 3060 Ti: about 20 s to load, then 10-15 s a sentence.
+
 ## Credits and licences
 
 - Music: Kevin MacLeod (incompetech.com), CC BY 4.0. The credit is written to `_CREDITS.txt` / `_YOUTUBE.txt` for each video.
