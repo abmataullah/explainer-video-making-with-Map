@@ -2441,7 +2441,7 @@ def build_from_audio(job, req):
             if req.get("design", "gemini") != "gemini":
                 raise RuntimeError("automatic design chosen")
             ch = (req.get("render") or {}).get("channel") or prod["channel"]
-            plan = gemini_array(job, PR.plan_prompt(prod, items, ch), len(items), "the visuals from your directions")
+            plan = gemini_array(job, PR.plan_prompt(prod, items, ch, lang), len(items), "the visuals from your directions")
             log(job, "Visual directions turned into scenes by Gemini.")
         except Exception as e:
             plan = PR.rule_plan(prod, items)

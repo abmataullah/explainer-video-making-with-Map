@@ -128,7 +128,7 @@ def parse_production(text):
     return doc
 
 
-SENT_RE = re.compile(r"[^।!?\n]+(?:[।!?]+|$)")
+SENT_RE = re.compile(r"(?:[^।!?.\n]|(?<=\d)\.(?=\d))+(?:[।!?.]+|$)")
 
 
 def beats(text, lo=60, hi=150):
@@ -153,7 +153,8 @@ def beats(text, lo=60, hi=150):
             else:
                 out.append(p)
     if len(out) > 1 and len(out[-1]) < 35:
-        out[-2] += " " + out.pop()
+        last = out.pop()                # pop first: "out[-2] += out.pop()" writes to the wrong slot
+        out[-1] += " " + last
     return out
 
 
@@ -220,7 +221,7 @@ Rules:
 """
 
 
-def plan_prompt(doc, items, channel):
+def plan_prompt(doc, items, channel, lang="bn"):
     parts = []
     for s in doc["sections"]:
         parts.append(f"SECTION {s['n']}: {s['title']}" + (f" ({s['time']})" if s["time"] else ""))
@@ -231,8 +232,14 @@ def plan_prompt(doc, items, channel):
             if it["sec"] == s["n"]:
                 parts.append(f"  {i + 1}. {it['text']}")
         parts.append("")
-    return PLAN_PROMPT.format(channel=channel or "the channel", title=doc.get("title", ""), cutoff=doc.get("cutoff", ""),
-                              sections="\n".join(parts), data=doc.get("data") or "(none)", n=len(items))
+    prompt = PLAN_PROMPT.format(channel=channel or "the channel", title=doc.get("title", ""), cutoff=doc.get("cutoff", ""),
+                                sections="\n".join(parts), data=doc.get("data") or "(none)", n=len(items))
+    if lang != "bn":
+        prompt = prompt.replace("a Bangla news-analysis channel", "an English-language news-analysis channel").replace(
+            "- On-screen text in Bangla, except tags the producer wrote in English (keep them as written).",
+            "- All on-screen text in English. Write numbers as digits (118, 13%, $19 billion) even where the "
+            "narration spells them out.")
+    return prompt
 
 
 # ---- without Gemini: a plain plan from keywords in the directions ----
