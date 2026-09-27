@@ -50,7 +50,7 @@ DEFAULTS = {
     # "channel" = each channel has its own (light) background colour
     "channel_themes": {"POLITICAL ANALYTICA": "peach", "TRUE NEWS": "sky", "GEO EXPLAINER": "mint"},
     "text_scale": 1.25,
-    "music_library": r"E:\Organized\Audio\royality free music",
+    "music_library": "",          # a folder of your own tracks to import; empty = none
     "music_volume": 0.1,
     "output_dir": "",
 }
