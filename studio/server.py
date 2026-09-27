@@ -46,7 +46,9 @@ DEFAULTS = {
     "broll_strict": True,
     "recent_music": [],
     "local_model": "gemma4:latest",
-    "bg": "navy",
+    "bg": "channel",
+    # "channel" = each channel has its own (light) background colour
+    "channel_themes": {"POLITICAL ANALYTICA": "peach", "TRUE NEWS": "sky", "GEO EXPLAINER": "mint"},
     "text_scale": 1.25,
     "music_library": r"E:\Organized\Audio\royality free music",
     "music_volume": 0.1,
@@ -1141,6 +1143,21 @@ def rscript():
 
 TEXT_SCALE = {"k": 1.25}
 BG_RED = {"on": False}
+LIGHT_BGS = {"sky": "#1d4ed8", "mint": "#047857", "peach": "#c2410c", "lavender": "#6d28d9", "sand": "#a16207",
+             "rose": "#be185d", "lemon": "#b45309"}      # light background -> chart accent
+CHART_LOOK = {"light": None}
+
+
+def channel_bg(s, channel):
+    """The background colour kept for this channel; a new channel gets a light colour no other channel uses."""
+    th = dict(s.get("channel_themes") or {})
+    if channel and th.get(channel):
+        return th[channel], th
+    used = set(th.values())
+    pick = next((c for c in LIGHT_BGS if c not in used), "sky")
+    if channel:
+        th[channel] = pick
+    return pick, th
 
 
 def render_chart(job, sc, i, look, lang, font, vertical):
@@ -1158,6 +1175,8 @@ def render_chart(job, sc, i, look, lang, font, vertical):
             "w": w, "h": h, "frames": 66, "v": 3, "scale": round(float(TEXT_SCALE.get("k", 1.25)), 2)}
     if BG_RED.get("on"):
         spec["accent"] = "#ffc233"
+    if CHART_LOOK.get("light"):
+        spec["look"], spec["accent"] = "light", CHART_LOOK["light"]
     key = hashlib.md5(json.dumps(spec, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:14]
     cache = os.path.join(ROOT, "cache", "charts")
     os.makedirs(cache, exist_ok=True)
@@ -1604,9 +1623,14 @@ def render(job, name, opts):
     f_cap = font_entry(opts.get("font_caption") or s.get("font_caption"))
     if opts.get("musicVolume") is not None:
         s["music_volume"] = float(opts["musicVolume"])
-    bg = opts.get("bg") or s.get("bg") or "navy"
+    bg_req = opts.get("bg") or s.get("bg") or "channel"
+    bg = bg_req
+    if bg_req == "channel":
+        bg, s["channel_themes"] = channel_bg(s, opts.get("channel") or s.get("channel"))
+        log(job, f"Background: {bg} (the colour of {opts.get('channel') or s.get('channel')})")
+    CHART_LOOK["light"] = LIGHT_BGS.get(bg)
     tscale = float(opts.get("textScale") or s.get("text_scale") or 1.25)
-    s["bg"], s["text_scale"] = bg, tscale
+    s["bg"], s["text_scale"] = bg_req, tscale
     TEXT_SCALE["k"] = tscale
     BG_RED["on"] = bg in ("red", "maroon") and look != "light"
     if opts.get("broll_region"):

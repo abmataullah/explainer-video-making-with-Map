@@ -14,7 +14,12 @@ export const FS = (n) => Math.round(n * TXT.k);
 
 // ---- background colour: any base colour becomes a full palette (sea, land, panels) ----
 export const BGS = {navy: '#0b2447', blue: '#0d3b66', red: '#5a0f1a', maroon: '#3d0a12', teal: '#083d44',
-  green: '#0f3d24', purple: '#2b1150', brown: '#3b2412', charcoal: '#15181c'};
+  green: '#0f3d24', purple: '#2b1150', brown: '#3b2412', charcoal: '#15181c',
+  // light backgrounds (the producer's default): each channel gets its own
+  sky: '#dbeafe', mint: '#d4f3e6', peach: '#fde2cc', lavender: '#e8dffb', sand: '#f4ead6', rose: '#fbdde5', lemon: '#fbf3c8'};
+// strong accent that reads well on each light background
+export const LIGHT_ACCENT = {sky: '#1d4ed8', mint: '#047857', peach: '#c2410c', lavender: '#6d28d9', sand: '#a16207',
+  rose: '#be185d', lemon: '#b45309'};
 const hx = (h) => { const n = parseInt(String(h).replace('#', ''), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 const mixc = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 const rgb = (c) => `rgb(${c.join(',')})`;
@@ -22,6 +27,14 @@ export const bgTheme = (key) => {
   const h = BGS[key] || (/^#[0-9a-f]{6}$/i.test(String(key || '')) ? key : null);
   if (!h) return {};
   const c = hx(h), K = [0, 0, 0], Wt = [255, 255, 255];
+  if ((0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255 > 0.6) {      // a light background: dark text on it
+    const acc = LIGHT_ACCENT[key] || rgb(mixc(c, K, 0.62));
+    return {light: true, ink: '0,0,0', bg0: rgb(mixc(c, K, 0.08)), bg1: rgb(c), sea: rgb(mixc(c, Wt, 0.55)),
+      land: rgb(mixc(c, K, 0.24)), edge: rgb(mixc(c, K, 0.5)), panel: 'rgba(255,255,255,0.93)', dim: mixc(c, Wt, 0.35).join(','),
+      text: '#111827', sub: rgb(mixc(c, K, 0.62)), accent: acc, choroLow: rgb(mixc(c, K, 0.06)), choroHigh: acc,
+      grid: 'rgba(0,0,0,0.07)', shadow: '0 1px 2px rgba(255,255,255,0.8)', capBg: 'rgba(17,24,39,0.88)', capText: '#ffffff',
+      glow: 'rgba(0,0,0,0.08)'};
+  }
   const red = c[0] > c[2] * 1.6 && c[0] > c[1] * 1.6;
   return {bg0: rgb(mixc(c, K, 0.42)), bg1: rgb(c), sea: rgb(mixc(c, K, 0.22)), land: rgb(mixc(c, Wt, 0.14)),
     edge: rgb(mixc(c, Wt, 0.4)), panel: `rgba(${mixc(c, K, 0.5).join(',')},0.9)`, dim: mixc(c, K, 0.6).join(','),

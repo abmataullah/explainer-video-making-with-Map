@@ -165,10 +165,13 @@ a{color:var(--acc)}
   <h2><b>4</b> Render</h2>
   <div class="row">
     <div><label>Format</label><select id="aspect"><option value="16:9">16:9 YouTube</option><option value="9:16">9:16 Shorts / Reels</option></select></div>
-    <div><label>Channel (intro, corner, outro)</label><div style="display:flex;gap:6px"><select id="channel" onchange="syncSel('channel','channel1')"></select>
+    <div><label>Channel (intro, corner, outro)</label><div style="display:flex;gap:6px"><select id="channel" onchange="syncSel('channel','channel1'); showChTheme()"></select>
       <button class="sm" title="Add a channel name" onclick="addChannel()">+</button><button class="sm" title="Remove this channel name" onclick="delChannel()">✕</button></div></div>
     <div><label>Look</label><select id="look" onchange="syncSel('look','look1')"><option value="classic">Classic (navy)</option><option value="hud">HUD (dark, grid, red)</option><option value="light">Light editorial</option></select></div>
-    <div><label>Background colour</label><select id="bg"><option value="navy">Navy blue</option><option value="blue">Blue</option><option value="red">Deep red</option><option value="maroon">Maroon</option><option value="teal">Teal</option><option value="green">Green</option><option value="purple">Purple</option><option value="brown">Brown</option><option value="charcoal">Charcoal (near black)</option></select></div>
+    <div><label>Background colour</label><select id="bg"><option value="channel">The channel's own colour</option>
+      <optgroup label="Light"><option value="sky">Sky blue</option><option value="mint">Mint</option><option value="peach">Peach</option><option value="lavender">Lavender</option><option value="sand">Sand</option><option value="rose">Rose</option><option value="lemon">Lemon</option></optgroup>
+      <optgroup label="Dark"><option value="navy">Navy blue</option><option value="blue">Blue</option><option value="red">Deep red</option><option value="maroon">Maroon</option><option value="teal">Teal</option><option value="green">Green</option><option value="purple">Purple</option><option value="brown">Brown</option><option value="charcoal">Charcoal (near black)</option></optgroup></select></div>
+    <div><label>Colour of this channel</label><select id="chTheme" onchange="saveChTheme()"><option value="sky">Sky blue</option><option value="mint">Mint</option><option value="peach">Peach</option><option value="lavender">Lavender</option><option value="sand">Sand</option><option value="rose">Rose</option><option value="lemon">Lemon</option></select></div>
     <div><label>Text size</label><select id="textScale"><option value="1">Normal</option><option value="1.15">Large</option><option value="1.25">Larger</option><option value="1.4">Very large</option></select></div>
     <div><label>Background music</label><select id="music" onchange="syncSel('music','music1')"></select></div>
     <div style="min-width:230px"><label>Music volume <b id="musicVolLbl">10%</b></label>
@@ -257,7 +260,7 @@ async function init() {
   ['look', 'look1'].forEach((id) => { $(id).value = S.look || 'classic'; });
   ['brollRegion', 'brollRegion1'].forEach((id) => { $(id).value = S.broll_region || 'auto'; });
   $('brollStrict').checked = S.broll_strict !== false;
-  $('bg').value = S.bg || 'navy'; $('textScale').value = String(S.text_scale || 1.25);
+  $('bg').value = S.bg || 'channel'; showChTheme(); $('textScale').value = String(S.text_scale || 1.25);
   api('/api/fonts').then((fs) => {
     const fav = fs.filter((f) => /hind|kalpurush|madanmohan|purno/i.test(f));
     const rest = fs.filter((f) => !fav.includes(f));
@@ -508,6 +511,11 @@ async function watchJob(title, job) {
         $('jobLog').textContent += '\n\nERROR: ' + j.error; if (j.project) loadProject(j.project); throw new Error(j.error); }
     }
   }
+}
+function showChTheme() { const t = (S.channel_themes || {})[$('channel').value]; $('chTheme').value = t || 'sky'; }
+async function saveChTheme() {
+  S.channel_themes = Object.assign({}, S.channel_themes || {}, {[$('channel').value]: $('chTheme').value});
+  await api('/api/settings', {channel_themes: S.channel_themes});
 }
 function fillChannels() {
   const list = (S.channels && S.channels.length) ? S.channels : ['GEO EXPLAINER'];

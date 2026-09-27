@@ -92,7 +92,7 @@ export const PyramidCard = ({s, local, fps, W, H, T, font}) => {
           const d = `M${cx - w0 / 2},${y1} L${cx + w0 / 2},${y1} L${cx + w1 / 2},${y0} L${cx - w1 / 2},${y0} Z`;
           const top = i === n - 1;
           return (<g key={i} opacity={a} transform={`translate(0,${(1 - a) * 40})`}>
-            <path d={d} fill={top ? T.accent : `rgba(255,255,255,${0.08 + 0.07 * i})`} stroke={top ? T.accent : T.edge} strokeWidth={2} />
+            <path d={d} fill={top ? T.accent : `rgba(${T.ink || '255,255,255'},${0.08 + 0.07 * i})`} stroke={top ? T.accent : T.edge} strokeWidth={2} />
           </g>);
         })}
       </svg>

@@ -13,7 +13,12 @@ const PALETTE = {
   সবুজ: '#52b788', হলুদ: '#ffd166', গোলাপি: '#ef476f', ধূসর: '#8d99ae',
 };
 const AUTO = ['red', 'amber', 'teal', 'blue', 'violet'];
-const col = (c) => PALETTE[String(c || '').trim().toLowerCase()] || PALETTE[String(c || '').trim()] || (String(c || '').startsWith('#') ? c : PALETTE.red);
+// on a light background yellow and pale orange vanish: use deeper tones there
+const ON_LIGHT = {'#ffd166': '#d97706', '#f4a261': '#ea7317', '#52b788': '#16a34a', '#4895ef': '#2563eb', '#8d99ae': '#64748b'};
+const col = (c) => {
+  const v = PALETTE[String(c || '').trim().toLowerCase()] || PALETTE[String(c || '').trim()] || (String(c || '').startsWith('#') ? c : PALETTE.red);
+  return THEME.light && ON_LIGHT[v] ? ON_LIGHT[v] : v;
+};
 
 const THEME = {
   bg0: '#07131f', bg1: '#0d2236', land: '#1b3148', edge: '#4a6784', text: '#ffffff',
@@ -196,7 +201,7 @@ const Headline = ({text, local, fps, font, W}) => {
       transform: `translateX(${(1 - s) * -40}px)`, fontFamily: font}}>
       <div style={{width: 10, background: THEME.accent, borderRadius: 3}} />
       <div style={{background: THEME.panel, color: THEME.text, fontSize: FS(46), fontWeight: 800, padding: '14px 26px',
-        maxWidth: Math.min(1100, W - 200), lineHeight: 1.3}}>{text}</div>
+        maxWidth: Math.min(1100, W - (W < 1300 ? 400 : 200)), lineHeight: 1.3}}>{text}</div>
     </div>
   );
 };
@@ -386,7 +391,7 @@ export const Explainer = (props) => {
   useFontFiles(props.fontFiles);
   const adm = useAdm(scenes);
   const look = props.look || 'classic';
-  Object.assign(THEME, THEMES[look] || THEMES.classic);
+  Object.assign(THEME, {light: look === 'light', ink: look === 'light' ? '0,0,0' : '255,255,255'}, THEMES[look] || THEMES.classic);
   if (props.bg && look !== 'light') Object.assign(THEME, bgTheme(props.bg));
   TXT.k = props.textScale || 1.25;
   const fontT = props.fontText ? `'${props.fontText}','Noto Sans Bengali','Nirmala UI',sans-serif` : font;
